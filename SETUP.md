@@ -3,16 +3,22 @@
 The app ships in a **"configure Supabase"** state until you complete these steps.
 Estimated time: 10–15 minutes.
 
+> **Status (2026-07-15, configured via Supabase MCP):** project-ref is
+> `zqmscunpbzungopdegym`. Steps **1** (project + keys), **4** (notes table + RLS
+> SQL), and **6** (repo secrets) are **done**. Remaining manual steps: **2**
+> (Google OAuth client), **3** (enable Google provider + redirect URLs), then
+> **7** (redeploy).
+
 ---
 
 ## 1. Create a Supabase project
 
 1. Go to <https://supabase.com> → **New project**.
 2. Open **Project Settings → API** and copy:
-   - **Project URL** (e.g. `https://<project-ref>.supabase.co`)
+   - **Project URL** (e.g. `https://zqmscunpbzungopdegym.supabase.co`)
    - the **anon / publishable key** (`sb_publishable_…` or the legacy `eyJ…` anon key)
 3. Note the **`project-ref`** (it's in the dashboard URL:
-   `https://supabase.com/dashboard/project/<project-ref>`).
+   `https://supabase.com/dashboard/project/zqmscunpbzungopdegym`).
 
 ## 2. Create a Google OAuth client
 
@@ -20,7 +26,7 @@ Estimated time: 10–15 minutes.
    (External). Add scopes `openid`, `email`, `profile`.
 2. **Credentials → Create credentials → OAuth client ID → Web application**.
 3. **Authorized redirect URI:**
-   `https://<project-ref>.supabase.co/auth/v1/callback`
+   `https://zqmscunpbzungopdegym.supabase.co/auth/v1/callback`
 4. **Authorized JavaScript origins:** `https://seenyo.github.io` and
    `http://localhost:5173`
 5. Copy the **Client ID** and **Client Secret**.
