@@ -2,15 +2,15 @@
 
 A minimal scaffold proving the end-to-end plumbing — **no study features yet**.
 
-| Concern | Stack |
-| --- | --- |
-| UI | React 19 |
-| Build | Vite 8 (Rolldown) |
-| Routing | React Router v8 (declarative) |
-| Styling | Tailwind CSS v4 (`@tailwindcss/vite`) |
-| Language | TypeScript 6 (strict) |
-| Backend | Supabase — Google OAuth (PKCE) + per-user `notes` (Row Level Security) |
-| Deploy | GitHub Pages via GitHub Actions |
+| Concern  | Stack                                                                  |
+| -------- | ---------------------------------------------------------------------- |
+| UI       | React 19                                                               |
+| Build    | Vite 8 (Rolldown)                                                      |
+| Routing  | React Router v8 (declarative)                                          |
+| Styling  | Tailwind CSS v4 (`@tailwindcss/vite`)                                  |
+| Language | TypeScript 6 (strict)                                                  |
+| Backend  | Supabase — Google OAuth (PKCE) + per-user `notes` (Row Level Security) |
+| Deploy   | GitHub Pages via GitHub Actions                                        |
 
 ## Develop
 

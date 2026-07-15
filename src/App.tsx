@@ -1,32 +1,31 @@
-import { BrowserRouter, Routes, Route } from 'react-router'
-import { AuthProvider } from './auth/AuthContext'
-import { ErrorBoundary } from './components/ErrorBoundary'
-import { Layout } from './components/Layout'
-import { RequireAuth } from './components/RequireAuth'
-import { Home } from './routes/Home'
-import { Dashboard } from './routes/Dashboard'
+import { BrowserRouter, Route, Routes } from 'react-router';
+import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
+import { Layout } from '@/components/layout/Layout';
+import { AuthProvider, RequireAuth, UserMenu } from '@/features/auth';
+import { Dashboard } from '@/pages/Dashboard';
+import { Home } from '@/pages/Home';
 
 export default function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <AuthProvider>
-          <Layout>
+          <Layout headerRight={<UserMenu />}>
             <Routes>
-              <Route path="/" element={<Home />} />
+              <Route element={<Home />} path="/" />
               <Route
-                path="/dashboard"
                 element={
                   <RequireAuth>
                     <Dashboard />
                   </RequireAuth>
                 }
+                path="/dashboard"
               />
-              <Route path="*" element={<Home />} />
+              <Route element={<Home />} path="*" />
             </Routes>
           </Layout>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>
-  )
+  );
 }

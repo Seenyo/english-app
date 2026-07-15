@@ -1,8 +1,13 @@
-import type { ReactNode } from 'react'
-import { Link, NavLink } from 'react-router'
-import { UserMenu } from './UserMenu'
+import type { ReactNode } from 'react';
+import { Link, NavLink } from 'react-router';
+import { cn } from '@/lib/utils';
 
-export function Layout({ children }: { children: ReactNode }) {
+type LayoutProps = {
+  children: ReactNode;
+  headerRight?: ReactNode;
+};
+
+export function Layout({ children, headerRight }: LayoutProps) {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b bg-white">
@@ -15,7 +20,7 @@ export function Layout({ children }: { children: ReactNode }) {
               to="/"
               end
               className={({ isActive }) =>
-                isActive ? 'font-medium text-gray-900' : 'text-gray-600'
+                cn(isActive ? 'font-medium text-gray-900' : 'text-gray-600')
               }
             >
               Home
@@ -23,12 +28,12 @@ export function Layout({ children }: { children: ReactNode }) {
             <NavLink
               to="/dashboard"
               className={({ isActive }) =>
-                isActive ? 'font-medium text-gray-900' : 'text-gray-600'
+                cn(isActive ? 'font-medium text-gray-900' : 'text-gray-600')
               }
             >
               Dashboard
             </NavLink>
-            <UserMenu />
+            {headerRight}
           </nav>
         </div>
       </header>
@@ -36,5 +41,5 @@ export function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
     </div>
-  )
+  );
 }

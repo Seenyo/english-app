@@ -1,9 +1,8 @@
-import { Link } from 'react-router'
-import { useAuth } from '../auth/useAuth'
-import { LoginButton } from '../components/LoginButton'
+import { Link } from 'react-router';
+import { LoginButton, useAuth } from '@/features/auth';
 
 export function Home() {
-  const { user } = useAuth()
+  const { user } = useAuth();
 
   return (
     <div className="space-y-6">
@@ -27,5 +26,5 @@ export function Home() {
         <LoginButton />
       )}
     </div>
-  )
+  );
 }
