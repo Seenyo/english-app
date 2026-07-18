@@ -25,6 +25,9 @@ Create Round ${request.round} of a three-round adaptive placement assessment. Me
 Learner profile:
 ${JSON.stringify(request.profile, null, 2)}
 
+Canonical learner persona snapshot:
+${request.canonicalPersona ? JSON.stringify(request.canonicalPersona, null, 2) : 'No existing canonical persona.'}
+
 Previous machine-scored results:
 ${previousResults}
 

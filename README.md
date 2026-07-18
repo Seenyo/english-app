@@ -19,6 +19,9 @@ ChatGPT Plus/Pro login. No OpenAI API key is used.
 - Responsive, keyboard-accessible React UI
 - GitHub Pages deployment for the static frontend
 - Local-only dry-run mode with fixed questions and isolated results
+- Asynchronous post-assessment analysis in the same Codex thread
+- One versioned learner persona with user-editable goals and AI/system-owned fields
+- Immutable Japanese feedback reports with all 25 answers and Markdown export
 
 ## Architecture
 
@@ -27,8 +30,8 @@ GitHub Pages / Vite dev server
         │ Supabase access token
         ▼
 Personal AI bridge (127.0.0.1:8787)
-        ├── Supabase: profiles, attempts, questions, answers, results
-        └── Codex SDK: saved ChatGPT Plus/Pro login
+        ├── Supabase: attempts, answers, persona versions, reports, jobs
+        └── Codex SDK: one resumable thread per learning feature
 ```
 
 The AI bridge inherits only Codex's login-related process environment. Supabase
@@ -77,4 +80,8 @@ before GitHub Pages deployment.
 - [`server/assessment/repository.ts`](./server/assessment/repository.ts) — server-only persistence
 - [`supabase/migrations/202607180001_assessment.sql`](./supabase/migrations/202607180001_assessment.sql) — schema and access policy
 - [`supabase/migrations/202607180002_dry_run.sql`](./supabase/migrations/202607180002_dry_run.sql) — isolated dry-run schema
+- [`supabase/migrations/202607180003_learning_documents.sql`](./supabase/migrations/202607180003_learning_documents.sql) — Persona, reports, agent threads, and analysis jobs
+- [`supabase/migrations/202607180004_atomic_persona_bootstrap.sql`](./supabase/migrations/202607180004_atomic_persona_bootstrap.sql) — atomic Persona creation and revision repair
 - [`src/features/assessment`](./src/features/assessment) — browser state and assessment UI
+- [`server/learning`](./server/learning) — post-assessment analysis, job processing, and document persistence
+- [`src/features/learning`](./src/features/learning) — Persona and feedback browser state

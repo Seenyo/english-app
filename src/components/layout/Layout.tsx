@@ -34,6 +34,34 @@ export function Layout({ children }: LayoutProps) {
                 >
                   ホーム
                 </NavLink>
+                {mode === 'live' && (
+                  <>
+                    <NavLink
+                      to="/persona"
+                      className={({ isActive }) =>
+                        cn(
+                          'nav-link nav-link-secondary',
+                          isActive && 'nav-link-active',
+                        )
+                      }
+                    >
+                      <span className="sm:hidden">私</span>
+                      <span className="hidden sm:inline">Persona</span>
+                    </NavLink>
+                    <NavLink
+                      to="/reports"
+                      className={({ isActive }) =>
+                        cn(
+                          'nav-link nav-link-secondary',
+                          isActive && 'nav-link-active',
+                        )
+                      }
+                    >
+                      <span className="sm:hidden">記録</span>
+                      <span className="hidden sm:inline">Feedback</span>
+                    </NavLink>
+                  </>
+                )}
                 <UserMenu />
               </>
             ) : (

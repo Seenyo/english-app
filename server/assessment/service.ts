@@ -155,8 +155,9 @@ export class AssessmentService {
       const generated = await generateAssessmentRound(
         {
           round,
-          threadId: round === 1 ? null : attempt.codex_thread_id,
+          threadId: attempt.codex_thread_id,
           profile: attempt.profile_snapshot,
+          canonicalPersona: attempt.persona_snapshot,
           previousResults,
         },
         {

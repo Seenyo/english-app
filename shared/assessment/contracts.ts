@@ -86,6 +86,7 @@ export const generateRoundRequestSchema = z
     round: z.union([z.literal(1), z.literal(2), z.literal(3)]),
     threadId: z.string().min(1).nullable(),
     profile: learnerProfileSchema,
+    canonicalPersona: z.record(z.string(), z.unknown()).nullable(),
     previousResults: z.array(previousRoundResultSchema).max(2),
   })
   .superRefine((value, context) => {
@@ -95,13 +96,6 @@ export const generateRoundRequestSchema = z
         code: 'custom',
         path: ['previousResults'],
         message: `Round ${value.round} requires ${expectedPreviousRounds} previous result(s).`,
-      });
-    }
-    if (value.round === 1 && value.threadId !== null) {
-      context.addIssue({
-        code: 'custom',
-        path: ['threadId'],
-        message: 'Round 1 must start a new Codex thread.',
       });
     }
     if (value.round > 1 && value.threadId === null) {

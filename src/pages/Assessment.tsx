@@ -130,6 +130,8 @@ export function Assessment() {
       await completeRound(answeringState.attemptId, answeringState.round);
       if (completed === 1 || completed === 2) {
         setJustCompletedRound(completed);
+      } else {
+        navigate('/', { replace: true });
       }
     } catch {
       // The provider keeps the current round and surfaces a retryable error.

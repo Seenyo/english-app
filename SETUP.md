@@ -34,11 +34,18 @@ In Supabase:
      - `https://seenyo.github.io/english-app/**`
      - `http://localhost:5173/**`
 
-## 3. Apply the assessment database migration
+## 3. Apply the database migrations
 
-Open the Supabase SQL Editor and run the complete contents of:
+Open the Supabase SQL Editor and run the complete contents of these files in
+order:
 
 [`supabase/migrations/202607180001_assessment.sql`](./supabase/migrations/202607180001_assessment.sql)
+
+[`supabase/migrations/202607180002_dry_run.sql`](./supabase/migrations/202607180002_dry_run.sql)
+
+[`supabase/migrations/202607180003_learning_documents.sql`](./supabase/migrations/202607180003_learning_documents.sql)
+
+[`supabase/migrations/202607180004_atomic_persona_bootstrap.sql`](./supabase/migrations/202607180004_atomic_persona_bootstrap.sql)
 
 The migration creates:
 
@@ -53,6 +60,11 @@ Only the learner profile is directly readable by its authenticated owner.
 Assessment internals are revoked from `anon` and `authenticated`; the personal
 bridge returns a safe projection with no correct answer, CEFR, difficulty, or
 explanation.
+
+The third migration adds the canonical versioned Persona, immutable assessment
+reports, per-feature Codex thread references, audit records, and a durable
+analysis queue. These tables are server-only; even an authenticated browser
+cannot query them directly.
 
 ## 4. Personal AI bridge environment
 
@@ -104,10 +116,6 @@ The AI bridge listens only on `127.0.0.1`. Its health endpoint is
 
 ## 7. Optional fixed-question dry-run
 
-Apply the complete contents of
-[`supabase/migrations/202607180002_dry_run.sql`](./supabase/migrations/202607180002_dry_run.sql)
-in the Supabase SQL Editor after the normal assessment migration.
-
 Temporarily add the account whose latest completed assessment should become
 the fixed fixture to `.env.server`:
 
@@ -137,9 +145,27 @@ Dry-run behavior:
 - the normal CEFR, normal attempt history, and 30-day retake rule are unchanged
 - persona start and Rounds 1/2 show the processing illustration for at least
   10 seconds; Round 3 returns directly to the home result card
+- no Codex analysis runs, Persona document, feedback report, or Persona update
+  is created or exposed in dry-run mode
 - runs are unlimited; an unfinished run resumes unless explicitly abandoned
 
-## 8. Optional Codex-only smoke test
+## 8. Post-assessment analysis
+
+In live mode, Question 25 is scored first and the browser returns to Home
+immediately. The bridge then resumes the assessment's Codex thread in the
+background, validates its structured response, and atomically stores:
+
+- a detailed Japanese report with all 25 answers
+- an updated AI-inferred Persona section
+- an immutable Persona revision and evidence observation
+- run/job metadata for repair and retry
+
+If the bridge stops midway, restart `npm run dev:ai`; pending or expired jobs
+are reclaimed. A missing local Codex thread is rotated once using the complete
+stored assessment context. Persona goals, motivation, interests, and self-note
+remain user-owned; measured levels and counters remain read-only.
+
+## 9. Optional Codex-only smoke test
 
 ```bash
 npm run ai:smoke
@@ -149,7 +175,7 @@ This generates one 10-question Round 1 using the saved ChatGPT login. The
 terminal prints only thread ID, repair count, question count, and categories —
 never the answer key.
 
-## 9. GitHub Pages
+## 10. GitHub Pages
 
 The static frontend still deploys from `main`. GitHub Actions requires only:
 

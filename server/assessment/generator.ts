@@ -75,19 +75,33 @@ export async function generateAssessmentRound(
     maxRepairAttempts: number;
   },
 ): Promise<GeneratedAssessmentRound> {
-  const thread = request.threadId
+  let thread = request.threadId
     ? options.threadFactory.resume(request.threadId)
     : options.threadFactory.start();
   const outputSchema = z.toJSONSchema(assessmentBatchSchema);
   let prompt = buildGenerationPrompt(request);
   let lastIssues: readonly string[] = [];
+  let rotatedAfterResumeFailure = false;
 
   for (
     let repairCount = 0;
     repairCount <= options.maxRepairAttempts;
     repairCount += 1
   ) {
-    const result = await thread.run(prompt, { outputSchema });
+    let result;
+    try {
+      result = await thread.run(prompt, { outputSchema });
+    } catch (error) {
+      if (!request.threadId || repairCount !== 0 || rotatedAfterResumeFailure) {
+        throw error;
+      }
+      // A local Codex thread can become unavailable after cleanup or an SDK
+      // upgrade. Start a replacement only after resume fails; the complete
+      // profile, canonical persona, and prior results remain in this prompt.
+      thread = options.threadFactory.start();
+      rotatedAfterResumeFailure = true;
+      result = await thread.run(prompt, { outputSchema });
+    }
     const validation = parseAndValidateBatch(
       result.finalResponse,
       request.round,

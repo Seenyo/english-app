@@ -17,6 +17,7 @@ const request: GenerateRoundRequest = {
     eikenGrade: null,
     toeicScore: null,
   },
+  canonicalPersona: null,
   previousResults: [resultForRound(1), resultForRound(2)],
 };
 
@@ -79,10 +80,47 @@ test('returns a resumable error after the repair budget is exhausted', async () 
   );
 });
 
+test('rotates once when an existing Codex thread cannot be resumed', async () => {
+  const replacement = fakeThreadWithId(
+    'thread-replacement',
+    [JSON.stringify(validRoundThreeBatch())],
+    [],
+  );
+  let starts = 0;
+
+  const result = await generateAssessmentRound(request, {
+    threadFactory: {
+      resume: () => ({
+        id: 'thread-existing',
+        async run() {
+          throw new Error('thread not found');
+        },
+      }),
+      start: () => {
+        starts += 1;
+        return replacement;
+      },
+    },
+    maxRepairAttempts: 1,
+  });
+
+  assert.equal(starts, 1);
+  assert.equal(result.threadId, 'thread-replacement');
+  assert.equal(result.repairCount, 0);
+});
+
 function fakeThread(responses: string[], prompts: string[]): AssessmentThread {
+  return fakeThreadWithId('thread-existing', responses, prompts);
+}
+
+function fakeThreadWithId(
+  id: string,
+  responses: string[],
+  prompts: string[],
+): AssessmentThread {
   let call = 0;
   return {
-    id: 'thread-existing',
+    id,
     async run(input) {
       prompts.push(String(input));
       const finalResponse = responses[call] ?? responses.at(-1) ?? '{}';

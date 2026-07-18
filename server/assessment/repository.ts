@@ -20,6 +20,8 @@ type AttemptRow = {
   current_round: 1 | 2 | 3;
   codex_thread_id: string | null;
   profile_snapshot: LearnerProfile;
+  persona_version: number | null;
+  persona_snapshot: Record<string, unknown> | null;
   estimated_cefr: (typeof cefrLevels)[number] | null;
   correct_count: number | null;
   unknown_count: number | null;
@@ -125,9 +127,54 @@ export class AssessmentRepository {
     userId: string,
     profile: LearnerProfile,
   ): Promise<AttemptRow> {
+    const [threadResult, personaResult] = await Promise.all([
+      this.database
+        .from('learning_agent_threads')
+        .select('codex_thread_id')
+        .eq('user_id', userId)
+        .eq('agent_kind', 'assessment')
+        .eq('scope_key', 'default')
+        .eq('status', 'active')
+        .maybeSingle(),
+      this.database
+        .from('learner_personas')
+        .select(
+          'schema_version, version, initial_self_assessment, user_authored, ai_inferred, updated_at',
+        )
+        .eq('user_id', userId)
+        .maybeSingle(),
+    ]);
+    if (threadResult.error) {
+      throw repositoryError(
+        'Could not load assessment Codex thread.',
+        threadResult.error,
+      );
+    }
+    if (personaResult.error) {
+      throw repositoryError(
+        'Could not load learner persona.',
+        personaResult.error,
+      );
+    }
+    const persona = personaResult.data
+      ? {
+          schemaVersion: personaResult.data.schema_version,
+          version: personaResult.data.version,
+          initialSelfAssessment: personaResult.data.initial_self_assessment,
+          userAuthored: personaResult.data.user_authored,
+          aiInferred: personaResult.data.ai_inferred,
+          updatedAt: personaResult.data.updated_at,
+        }
+      : null;
     const { data, error } = await this.database
       .from('assessment_attempts')
-      .insert({ user_id: userId, profile_snapshot: profile })
+      .insert({
+        user_id: userId,
+        profile_snapshot: profile,
+        codex_thread_id: threadResult.data?.codex_thread_id ?? null,
+        persona_version: personaResult.data?.version ?? null,
+        persona_snapshot: persona,
+      })
       .select('*')
       .single();
     if (error) {
@@ -289,6 +336,26 @@ export class AssessmentRepository {
       .eq('user_id', attempt.user_id);
     if (attemptError) {
       throw repositoryError('Could not activate assessment.', attemptError);
+    }
+
+    const { error: threadError } = await this.database
+      .from('learning_agent_threads')
+      .upsert(
+        {
+          user_id: attempt.user_id,
+          agent_kind: 'assessment',
+          scope_key: 'default',
+          codex_thread_id: threadId,
+          status: 'active',
+          last_used_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,agent_kind,scope_key' },
+      );
+    if (threadError) {
+      throw repositoryError(
+        'Could not remember assessment Codex thread.',
+        threadError,
+      );
     }
   }
 

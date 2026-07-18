@@ -15,6 +15,7 @@ const request: GenerateRoundRequest = {
     eikenGrade: null,
     toeicScore: null,
   },
+  canonicalPersona: null,
   previousResults: [],
 };
 

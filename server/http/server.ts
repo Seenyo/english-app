@@ -7,10 +7,14 @@ import {
   saveAnswerRequestSchema,
   startAssessmentRequestSchema,
 } from '../../shared/assessment/contracts.ts';
+import { updatePersonaRequestSchema } from '../../shared/learning/contracts.ts';
 import { AssessmentRepositoryError } from '../assessment/repository.ts';
 import { createAssessmentRuntime } from '../assessment/runtime.ts';
+import { createAssessmentThreadFactory } from '../assessment/generator.ts';
 import type { AuthorizeRequest } from '../auth/authorize.ts';
 import type { ServerConfig } from '../config.ts';
+import { LearningRepositoryError } from '../learning/repository.ts';
+import { LearningService } from '../learning/service.ts';
 import { readJsonBody } from './body.ts';
 import { HttpError } from './errors.ts';
 
@@ -18,7 +22,17 @@ export function createAiBridgeServer(
   config: ServerConfig,
   authorize: AuthorizeRequest,
 ) {
-  const assessmentRuntime = createAssessmentRuntime(config);
+  const threadFactory =
+    config.assessmentMode === 'live'
+      ? createAssessmentThreadFactory(config)
+      : null;
+  const learningService = LearningService.create(config, threadFactory);
+  const assessmentRuntime = createAssessmentRuntime(
+    config,
+    threadFactory,
+    learningService,
+  );
+  learningService.kick();
 
   return createServer(async (request, response) => {
     const origin = getAllowedOrigin(
@@ -55,6 +69,80 @@ export function createAiBridgeServer(
       }
 
       const user = await authorize(request);
+      if (
+        request.method === 'GET' &&
+        url.pathname === '/v1/learning/overview'
+      ) {
+        sendJson(response, 200, await learningService.getOverview(user));
+        return;
+      }
+
+      if (request.method === 'GET' && url.pathname === '/v1/persona') {
+        sendJson(response, 200, {
+          persona: await learningService.getPersona(user),
+        });
+        return;
+      }
+
+      if (request.method === 'PUT' && url.pathname === '/v1/persona') {
+        const parsed = updatePersonaRequestSchema.safeParse(
+          await readJsonBody(request),
+        );
+        if (!parsed.success) throw invalidRequest(parsed.error.issues);
+        sendJson(response, 200, {
+          persona: await learningService.updatePersona(
+            user,
+            parsed.data.expectedVersion,
+            parsed.data.userAuthored,
+          ),
+        });
+        return;
+      }
+
+      if (
+        request.method === 'GET' &&
+        url.pathname === '/v1/assessment-reports'
+      ) {
+        sendJson(response, 200, await learningService.listReports(user));
+        return;
+      }
+
+      if (
+        request.method === 'POST' &&
+        url.pathname === '/v1/assessment-reports/retry-latest'
+      ) {
+        await learningService.retryLatestAnalysis(user);
+        response.writeHead(204).end();
+        return;
+      }
+
+      const reportRoute = url.pathname.match(
+        /^\/v1\/assessment-reports\/([0-9a-f-]{36})$/i,
+      );
+      const reportMarkdownRoute = url.pathname.match(
+        /^\/v1\/assessment-reports\/([0-9a-f-]{36})\/markdown$/i,
+      );
+      if (request.method === 'GET' && reportMarkdownRoute) {
+        sendText(
+          response,
+          200,
+          await learningService.getReportMarkdown(
+            user,
+            reportMarkdownRoute[1]!,
+          ),
+          `assessment-feedback-${reportMarkdownRoute[1]}.md`,
+        );
+        return;
+      }
+      if (request.method === 'GET' && reportRoute) {
+        sendJson(
+          response,
+          200,
+          await learningService.getReport(user, reportRoute[1]!),
+        );
+        return;
+      }
+
       if (
         request.method === 'GET' &&
         url.pathname === '/v1/assessments/current'
@@ -166,6 +254,19 @@ function sendJson(response: ServerResponse, status: number, body: unknown) {
   response.end(JSON.stringify(body));
 }
 
+function sendText(
+  response: ServerResponse,
+  status: number,
+  body: string,
+  filename: string,
+) {
+  response.writeHead(status, {
+    'Content-Type': 'text/markdown; charset=utf-8',
+    'Content-Disposition': `attachment; filename="${filename}"`,
+  });
+  response.end(body);
+}
+
 function handleError(response: ServerResponse, error: unknown) {
   if (error instanceof HttpError) {
     sendJson(response, error.status, {
@@ -183,6 +284,25 @@ function handleError(response: ServerResponse, error: unknown) {
     sendJson(response, conflictCodes.has(error.code ?? '') ? 409 : 500, {
       error: {
         code: error.code ?? 'database_error',
+        message: error.message,
+        retryable: true,
+      },
+    });
+    return;
+  }
+
+  if (error instanceof LearningRepositoryError) {
+    const status =
+      error.code === 'persona_version_conflict'
+        ? 409
+        : error.code === 'dry_run_unavailable' ||
+            error.code === 'persona_not_found' ||
+            error.code === 'assessment_not_found'
+          ? 404
+          : 500;
+    sendJson(response, status, {
+      error: {
+        code: error.code ?? 'learning_data_error',
         message: error.message,
         retryable: true,
       },

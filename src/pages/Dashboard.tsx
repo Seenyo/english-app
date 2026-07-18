@@ -3,10 +3,17 @@ import type { AssessmentState } from '@shared/assessment/contracts';
 import { Spinner } from '@/components/ui/Spinner';
 import { useAssessment } from '@/features/assessment';
 import { useAuth } from '@/features/auth';
+import { useLearning } from '@/features/learning';
 
 export function Dashboard() {
   const { user } = useAuth();
   const { state, mode, isLoading, error, refresh } = useAssessment();
+  const {
+    overview,
+    error: learningError,
+    isSaving: isRetryingAnalysis,
+    retryAnalysis,
+  } = useLearning();
 
   if (isLoading) {
     return (
@@ -122,6 +129,13 @@ export function Dashboard() {
         </div>
       </section>
 
+      <AnalysisCard
+        error={learningError}
+        isRetrying={isRetryingAnalysis}
+        overview={overview}
+        onRetry={() => void retryAnalysis().catch(() => undefined)}
+      />
+
       <section>
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
@@ -161,7 +175,10 @@ function DryRunDashboard({
             固定された25問で、保存・採点・ラウンド遷移を最後まで確認しました。この結果は通常の英語レベルには反映されていません。
           </p>
         </div>
-        <div className="dry-run-result-seal" aria-label={`Dry-run推定 ${state.estimatedCefr}`}>
+        <div
+          className="dry-run-result-seal"
+          aria-label={`Dry-run推定 ${state.estimatedCefr}`}
+        >
           <span>DRY</span>
           <strong>{state.estimatedCefr}</strong>
           <small>TEST ONLY</small>
@@ -190,7 +207,11 @@ function DryRunDashboard({
             ))}
           </div>
           <p className="mt-6 text-sm font-bold leading-6 text-teal-700">
-            「わからない」{state.unknown}問。回答履歴はDry-run専用領域に保存されています。
+            「わからない」{state.unknown}
+            問。回答履歴はDry-run専用領域に保存されています。
+          </p>
+          <p className="dry-run-analysis-note mt-4">
+            Dry-runではCodex分析・Feedback生成・Persona更新を行いません。
           </p>
         </div>
 
@@ -208,6 +229,78 @@ function DryRunDashboard({
       </section>
     </div>
   );
+}
+
+function AnalysisCard({
+  overview,
+  error,
+  isRetrying,
+  onRetry,
+}: {
+  overview: ReturnType<typeof useLearning>['overview'];
+  error: string | null;
+  isRetrying: boolean;
+  onRetry: () => void;
+}) {
+  const status = overview?.analysisStatus;
+  const latestReport = overview?.latestReport;
+  if (status === 'ready' && latestReport) {
+    return (
+      <section className="analysis-status-card analysis-ready">
+        <div className="analysis-status-mark" aria-hidden="true">
+          ✓
+        </div>
+        <div>
+          <p className="eyebrow">Detailed feedback ready</p>
+          <h2>25問から見つかった、次の一歩。</h2>
+          <p>{latestReport.executiveSummaryJa}</p>
+        </div>
+        <Link className="primary-link" to={`/reports/${latestReport.id}`}>
+          詳細フィードバックを見る
+        </Link>
+      </section>
+    );
+  }
+  if (status === 'pending' || status === 'running') {
+    return (
+      <section
+        className="analysis-status-card analysis-working"
+        aria-live="polite"
+      >
+        <div className="analysis-pulse" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </div>
+        <div>
+          <p className="eyebrow">Your AI is reading</p>
+          <h2>専属AIが、25問を詳しく分析中です。</h2>
+          <p>
+            ホームを離れても大丈夫です。分析が終わると、ここから詳細を開けます。
+          </p>
+        </div>
+      </section>
+    );
+  }
+  if (status === 'failed') {
+    return (
+      <section className="analysis-status-card analysis-failed">
+        <div>
+          <p className="eyebrow">Analysis paused</p>
+          <h2>スコアは保存済みです。詳細分析だけ再開できます。</h2>
+          <p>{overview?.analysisMessage ?? error}</p>
+        </div>
+        <button
+          className="secondary-link"
+          disabled={isRetrying}
+          onClick={onRetry}
+        >
+          {isRetrying ? '再開中…' : '詳細分析を再試行'}
+        </button>
+      </section>
+    );
+  }
+  return null;
 }
 
 function FutureCard({
