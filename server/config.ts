@@ -1,11 +1,13 @@
 import { z } from 'zod';
 
 const reasoningEfforts = ['minimal', 'low', 'medium', 'high', 'xhigh'] as const;
+const assessmentModes = ['live', 'dry-run'] as const;
 
 const environmentSchema = z.object({
   AI_BRIDGE_PORT: z.coerce.number().int().min(1).max(65535).default(8787),
   AI_ALLOWED_ORIGINS: z.string().min(1),
   AI_ALLOWED_EMAILS: z.string().min(1),
+  ASSESSMENT_MODE: z.enum(assessmentModes).default('live'),
   AI_GENERATION_REPAIR_ATTEMPTS: z.coerce
     .number()
     .int()
@@ -24,6 +26,7 @@ export type ServerConfig = {
   allowedOrigins: ReadonlySet<string>;
   allowedEmails: ReadonlySet<string>;
   repairAttempts: number;
+  assessmentMode: (typeof assessmentModes)[number];
   supabaseUrl: string;
   supabaseAnonKey: string;
   supabaseSecretKey: string;
@@ -47,6 +50,7 @@ export function readServerConfig(
     allowedOrigins: parseCsv(parsed.data.AI_ALLOWED_ORIGINS),
     allowedEmails: parseCsv(parsed.data.AI_ALLOWED_EMAILS, true),
     repairAttempts: parsed.data.AI_GENERATION_REPAIR_ATTEMPTS,
+    assessmentMode: parsed.data.ASSESSMENT_MODE,
     supabaseUrl: parsed.data.SUPABASE_URL,
     supabaseAnonKey: parsed.data.SUPABASE_ANON_KEY,
     supabaseSecretKey: parsed.data.SUPABASE_SECRET_KEY,

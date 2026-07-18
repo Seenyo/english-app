@@ -27,14 +27,42 @@ const copy = {
   },
 } as const;
 
+const dryRunCopy = {
+  starting: {
+    eyebrow: 'Dry-run warm up',
+    title: '固定問題を、\n準備しています。',
+    detail:
+      '入力したペルソナは保存せず、通常のプロフィールも上書きしません。10秒後に、過去の25問から最初の10問を表示します。',
+    note: '本番と同じ画面遷移を確認するための待機時間です。',
+    accent: 'processing-dry-run',
+  },
+  adapting: {
+    eyebrow: 'Dry-run scoring',
+    title: '回答を採点して、\n次のラウンドへ。',
+    detail:
+      '回答はDry-run専用データとして保存・採点しています。固定された次の問題へ進むまで、10秒だけお待ちください。',
+    note: '通常の測定履歴・現在のCEFR・30日制限には影響しません。',
+    accent: 'processing-dry-run',
+  },
+  finalizing: {
+    eyebrow: 'Dry-run complete',
+    title: 'Dry-runの結果を、\nまとめています。',
+    detail: '3ラウンドの回答を採点し、Dry-run専用の結果を作成しています。',
+    note: 'この結果は通常のCEFRには反映されません。',
+    accent: 'processing-dry-run',
+  },
+} as const;
+
 export function AssessmentProcessing({
   mode,
   onRetry,
+  dryRun = false,
 }: {
   mode: Exclude<AssessmentActivity, null>;
   onRetry?: () => void;
+  dryRun?: boolean;
 }) {
-  const content = copy[mode];
+  const content = dryRun ? dryRunCopy[mode] : copy[mode];
 
   return (
     <div className="processing-stage">

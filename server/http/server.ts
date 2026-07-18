@@ -7,9 +7,8 @@ import {
   saveAnswerRequestSchema,
   startAssessmentRequestSchema,
 } from '../../shared/assessment/contracts.ts';
-import { createAssessmentThreadFactory } from '../assessment/generator.ts';
 import { AssessmentRepositoryError } from '../assessment/repository.ts';
-import { AssessmentService } from '../assessment/service.ts';
+import { createAssessmentRuntime } from '../assessment/runtime.ts';
 import type { AuthorizeRequest } from '../auth/authorize.ts';
 import type { ServerConfig } from '../config.ts';
 import { readJsonBody } from './body.ts';
@@ -19,11 +18,14 @@ export function createAiBridgeServer(
   config: ServerConfig,
   authorize: AuthorizeRequest,
 ) {
-  const threadFactory = createAssessmentThreadFactory(config);
-  const assessmentService = AssessmentService.create(config, threadFactory);
+  const assessmentRuntime = createAssessmentRuntime(config);
 
   return createServer(async (request, response) => {
-    const origin = getAllowedOrigin(request, config.allowedOrigins);
+    const origin = getAllowedOrigin(
+      request,
+      config.allowedOrigins,
+      config.assessmentMode,
+    );
     setCorsHeaders(response, origin);
 
     if (request.method === 'OPTIONS') {
@@ -34,7 +36,10 @@ export function createAiBridgeServer(
     try {
       const url = new URL(request.url ?? '/', 'http://127.0.0.1');
       if (request.method === 'GET' && url.pathname === '/health') {
-        sendJson(response, 200, { status: 'ok' });
+        sendJson(response, 200, {
+          status: 'ok',
+          assessmentMode: config.assessmentMode,
+        });
         return;
       }
 
@@ -54,7 +59,7 @@ export function createAiBridgeServer(
         request.method === 'GET' &&
         url.pathname === '/v1/assessments/current'
       ) {
-        sendJson(response, 200, await assessmentService.getState(user));
+        sendJson(response, 200, await assessmentRuntime.getSnapshot(user));
         return;
       }
 
@@ -66,8 +71,16 @@ export function createAiBridgeServer(
         sendJson(
           response,
           200,
-          await assessmentService.start(user, parsed.data.profile),
+          await assessmentRuntime.start(user, parsed.data.profile),
         );
+        return;
+      }
+
+      if (
+        request.method === 'POST' &&
+        url.pathname === '/v1/assessments/abandon'
+      ) {
+        sendJson(response, 200, await assessmentRuntime.abandon(user));
         return;
       }
 
@@ -79,7 +92,7 @@ export function createAiBridgeServer(
           await readJsonBody(request),
         );
         if (!parsed.success) throw invalidRequest(parsed.error.issues);
-        await assessmentService.saveAnswer(
+        await assessmentRuntime.saveAnswer(
           user,
           answerRoute[1]!,
           answerRoute[2]!,
@@ -96,7 +109,7 @@ export function createAiBridgeServer(
         sendJson(
           response,
           200,
-          await assessmentService.completeRound(
+          await assessmentRuntime.completeRound(
             user,
             completeRoute[1]!,
             Number(completeRoute[2]) as 1 | 2 | 3,
@@ -112,7 +125,7 @@ export function createAiBridgeServer(
         sendJson(
           response,
           200,
-          await assessmentService.retry(user, retryRoute[1]!),
+          await assessmentRuntime.retry(user, retryRoute[1]!),
         );
         return;
       }
@@ -127,9 +140,13 @@ export function createAiBridgeServer(
 function getAllowedOrigin(
   request: IncomingMessage,
   allowedOrigins: ReadonlySet<string>,
+  assessmentMode: ServerConfig['assessmentMode'],
 ): string | null {
   const origin = request.headers.origin;
-  return origin && allowedOrigins.has(origin) ? origin : null;
+  if (!origin || !allowedOrigins.has(origin)) return null;
+  if (assessmentMode === 'live') return origin;
+  const hostname = new URL(origin).hostname;
+  return hostname === 'localhost' || hostname === '127.0.0.1' ? origin : null;
 }
 
 function setCorsHeaders(response: ServerResponse, origin: string | null) {

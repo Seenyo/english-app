@@ -1,7 +1,7 @@
 import {
-  assessmentStateSchema,
+  assessmentSnapshotSchema,
   type AnswerSelection,
-  type AssessmentState,
+  type AssessmentSnapshot,
   type LearnerProfile,
 } from '@shared/assessment/contracts';
 import { aiBridgeUrl } from '@/config/env';
@@ -22,15 +22,17 @@ export class AssessmentApiError extends Error {
   }
 }
 
-export function getAssessmentState(token: string): Promise<AssessmentState> {
-  return requestState(token, '/v1/assessments/current');
+export function getAssessmentSnapshot(
+  token: string,
+): Promise<AssessmentSnapshot> {
+  return requestSnapshot(token, '/v1/assessments/current');
 }
 
 export function startAssessment(
   token: string,
   profile: LearnerProfile,
-): Promise<AssessmentState> {
-  return requestState(token, '/v1/assessments', {
+): Promise<AssessmentSnapshot> {
+  return requestSnapshot(token, '/v1/assessments', {
     method: 'POST',
     body: { profile },
   });
@@ -53,8 +55,8 @@ export function completeAssessmentRound(
   token: string,
   attemptId: string,
   round: 1 | 2 | 3,
-): Promise<AssessmentState> {
-  return requestState(
+): Promise<AssessmentSnapshot> {
+  return requestSnapshot(
     token,
     `/v1/assessments/${encodeURIComponent(attemptId)}/rounds/${round}/complete`,
     { method: 'POST' },
@@ -64,21 +66,25 @@ export function completeAssessmentRound(
 export function retryAssessmentGeneration(
   token: string,
   attemptId: string,
-): Promise<AssessmentState> {
-  return requestState(
+): Promise<AssessmentSnapshot> {
+  return requestSnapshot(
     token,
     `/v1/assessments/${encodeURIComponent(attemptId)}/retry`,
     { method: 'POST' },
   );
 }
 
-async function requestState(
+export function abandonDryRun(token: string): Promise<AssessmentSnapshot> {
+  return requestSnapshot(token, '/v1/assessments/abandon', { method: 'POST' });
+}
+
+async function requestSnapshot(
   token: string,
   path: string,
   options?: RequestOptions,
-): Promise<AssessmentState> {
+): Promise<AssessmentSnapshot> {
   const response = await request(token, path, options);
-  return assessmentStateSchema.parse(await response.json());
+  return assessmentSnapshotSchema.parse(await response.json());
 }
 
 async function request(

@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router';
+import { useAssessment } from '@/features/assessment';
+import { DryRunBanner } from '@/features/assessment/components/DryRunBanner';
 import { useAuth, UserMenu } from '@/features/auth';
 import { cn } from '@/lib/utils';
 
@@ -9,6 +11,7 @@ type LayoutProps = {
 
 export function Layout({ children }: LayoutProps) {
   const { configured, isLoading, session, signInWithGoogle } = useAuth();
+  const { mode } = useAssessment();
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
@@ -18,6 +21,7 @@ export function Layout({ children }: LayoutProps) {
             <span aria-hidden="true">a</span>
             <strong>everyday</strong>
           </Link>
+          {session && mode === 'dry-run' && <DryRunBanner compact />}
           <nav className="flex items-center gap-3 text-sm font-bold sm:gap-6">
             {session ? (
               <>
@@ -47,6 +51,11 @@ export function Layout({ children }: LayoutProps) {
           </nav>
         </div>
       </header>
+      {session && mode === 'dry-run' && (
+        <div className="dry-run-ribbon">
+          DRY RUN ・ 固定された25問を使用 ・ 現在のCEFRには反映されません
+        </div>
+      )}
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
         {children}
       </main>

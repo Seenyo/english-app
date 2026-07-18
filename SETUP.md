@@ -62,6 +62,7 @@ Copy `.env.server.example` to `.env.server` and fill in:
 AI_BRIDGE_PORT=8787
 AI_ALLOWED_ORIGINS=http://localhost:5173,https://seenyo.github.io
 AI_ALLOWED_EMAILS=first-owned-account@gmail.com,second-owned-account@gmail.com
+ASSESSMENT_MODE=live
 SUPABASE_URL=https://zqmscunpbzungopdegym.supabase.co
 SUPABASE_ANON_KEY=YOUR-PUBLISHABLE-KEY
 SUPABASE_SECRET_KEY=YOUR-SERVER-ONLY-SECRET-OR-SERVICE-ROLE-KEY
@@ -101,7 +102,44 @@ npm run dev:ai
 The AI bridge listens only on `127.0.0.1`. Its health endpoint is
 <http://127.0.0.1:8787/health>.
 
-## 7. Optional Codex-only smoke test
+## 7. Optional fixed-question dry-run
+
+Apply the complete contents of
+[`supabase/migrations/202607180002_dry_run.sql`](./supabase/migrations/202607180002_dry_run.sql)
+in the Supabase SQL Editor after the normal assessment migration.
+
+Temporarily add the account whose latest completed assessment should become
+the fixed fixture to `.env.server`:
+
+```dotenv
+DRY_RUN_FIXTURE_SOURCE_EMAIL=your-owned-source-account@gmail.com
+```
+
+Import the latest completed 10/10/5 assessment once:
+
+```bash
+npm run dry-run:seed
+```
+
+The import copies all 25 questions and answer keys into server-only Supabase
+tables. It prints metadata only; question content and keys never enter the
+browser or repository. Then start the bridge in exclusive dry-run mode:
+
+```bash
+npm run dev:ai:dry-run
+```
+
+Dry-run behavior:
+
+- the persona form is never persisted and never overwrites `learner_profiles`
+- answers, round scores, resume state, and completed history use only
+  `dry_run_*` tables
+- the normal CEFR, normal attempt history, and 30-day retake rule are unchanged
+- persona start and Rounds 1/2 show the processing illustration for at least
+  10 seconds; Round 3 returns directly to the home result card
+- runs are unlimited; an unfinished run resumes unless explicitly abandoned
+
+## 8. Optional Codex-only smoke test
 
 ```bash
 npm run ai:smoke
@@ -111,7 +149,7 @@ This generates one 10-question Round 1 using the saved ChatGPT login. The
 terminal prints only thread ID, repair count, question count, and categories —
 never the answer key.
 
-## 8. GitHub Pages
+## 9. GitHub Pages
 
 The static frontend still deploys from `main`. GitHub Actions requires only:
 

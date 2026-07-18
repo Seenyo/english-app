@@ -1,7 +1,8 @@
 export {
   AssessmentApiError,
+  abandonDryRun,
   completeAssessmentRound,
-  getAssessmentState,
+  getAssessmentSnapshot,
   retryAssessmentGeneration,
   saveAssessmentAnswer,
   startAssessment,

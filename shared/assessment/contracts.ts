@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+export const assessmentModes = ['live', 'dry-run'] as const;
+export const assessmentModeSchema = z.enum(assessmentModes);
+export type AssessmentMode = z.infer<typeof assessmentModeSchema>;
+
 export const assessmentCategories = ['vocabulary', 'idiom', 'grammar'] as const;
 export const assessmentCategorySchema = z.enum(assessmentCategories);
 export type AssessmentCategory = z.infer<typeof assessmentCategorySchema>;
@@ -173,6 +177,12 @@ export const assessmentStateSchema = z.discriminatedUnion('status', [
   }),
 ]);
 export type AssessmentState = z.infer<typeof assessmentStateSchema>;
+
+export const assessmentSnapshotSchema = z.object({
+  mode: assessmentModeSchema,
+  state: assessmentStateSchema,
+});
+export type AssessmentSnapshot = z.infer<typeof assessmentSnapshotSchema>;
 
 export const roundBlueprint = {
   1: { vocabulary: 4, idiom: 3, grammar: 3 },

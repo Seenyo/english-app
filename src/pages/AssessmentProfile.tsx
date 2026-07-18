@@ -17,13 +17,18 @@ const eikenLabels: Record<(typeof eikenGrades)[number], string> = {
 
 export function AssessmentProfile() {
   const navigate = useNavigate();
-  const { state, isLoading, isWorking, error, start } = useAssessment();
+  const { state, mode, isLoading, isWorking, error, start } = useAssessment();
   const [selfAssessment, setSelfAssessment] = useState('');
   const [eikenGrade, setEikenGrade] = useState('');
   const [toeicScore, setToeicScore] = useState('');
 
+  const isDryRun = mode === 'dry-run';
   if (isLoading) return <CenteredSpinner />;
-  if (state && state.status !== 'not_started') {
+  if (
+    state &&
+    state.status !== 'not_started' &&
+    !(isDryRun && state.status === 'completed')
+  ) {
     return <Navigate replace to="/assessment" />;
   }
 
@@ -48,13 +53,15 @@ export function AssessmentProfile() {
   return (
     <div className="mx-auto grid max-w-5xl gap-10 py-4 lg:grid-cols-[0.8fr_1.2fr] lg:items-start lg:py-10">
       <section className="lg:sticky lg:top-24">
-        <p className="eyebrow">First step</p>
+        <p className="eyebrow">{isDryRun ? 'Dry-run persona' : 'First step'}</p>
         <h1 className="mt-3 text-4xl font-black leading-tight tracking-tight text-teal-950 sm:text-5xl">
           今の英語を、
           <span className="text-coral-600">言葉にする。</span>
         </h1>
         <p className="mt-5 max-w-md text-base font-medium leading-7 text-teal-800">
-          ここで詳しく書くほど、最初の10問をあなたに合った難易度から始められます。日本語でも英語でも構いません。
+          {isDryRun
+            ? '画面フロー確認用の一時入力です。入力内容は保存されず、通常のプロフィールも変更されません。'
+            : 'ここで詳しく書くほど、最初の10問をあなたに合った難易度から始められます。日本語でも英語でも構いません。'}
         </p>
         <div className="mt-8 hidden rounded-[2rem] border-3 border-teal-950 bg-sky-200 p-6 shadow-[6px_6px_0_#173a3f] lg:block">
           <p className="font-utility text-xs font-black tracking-widest text-teal-800 uppercase">
@@ -64,7 +71,9 @@ export function AssessmentProfile() {
             10問 → 10問 → 5問
           </p>
           <p className="mt-2 text-sm font-bold leading-6 text-teal-700">
-            単語・熟語・文法を、回答に合わせて少しずつ絞り込みます。
+            {isDryRun
+              ? '過去に生成した固定問題を使い、保存・採点・再開の動作を確認します。'
+              : '単語・熟語・文法を、回答に合わせて少しずつ絞り込みます。'}
           </p>
         </div>
       </section>
@@ -73,7 +82,9 @@ export function AssessmentProfile() {
         <label className="form-field">
           <span className="form-label">自分で感じている英語レベル</span>
           <span className="form-help">
-            読む・聞く・話す場面、得意なこと、困ることなどを自由に書いてください。
+            {isDryRun
+              ? '20文字以上入力してください。この内容はどこにも保存されません。'
+              : '読む・聞く・話す場面、得意なこと、困ることなどを自由に書いてください。'}
           </span>
           <textarea
             autoFocus
@@ -132,10 +143,11 @@ export function AssessmentProfile() {
         >
           {isWorking ? (
             <>
-              <Spinner className="h-5 w-5 border-2" /> 最初の10問を作成中
+              <Spinner className="h-5 w-5 border-2" />{' '}
+              {isDryRun ? '固定問題を準備中' : '最初の10問を作成中'}
             </>
           ) : (
-            'レベル測定を始める →'
+            isDryRun ? 'Dry-runを始める →' : 'レベル測定を始める →'
           )}
         </Button>
       </form>

@@ -8,13 +8,15 @@ import {
 } from 'react';
 import type {
   AnswerSelection,
+  AssessmentMode,
   AssessmentState,
   LearnerProfile,
 } from '@shared/assessment/contracts';
 import { useAuth } from '@/features/auth';
 import {
+  abandonDryRun,
   completeAssessmentRound,
-  getAssessmentState,
+  getAssessmentSnapshot,
   retryAssessmentGeneration,
   saveAssessmentAnswer,
   startAssessment,
@@ -30,6 +32,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   const sessionRef = useRef(session);
   const loadedUserId = useRef<string | null>(null);
   const [state, setState] = useState<AssessmentState | null>(null);
+  const [mode, setMode] = useState<AssessmentMode | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(session));
   const [isWorking, setIsWorking] = useState(false);
   const [activity, setActivity] = useState<AssessmentActivity>(null);
@@ -49,7 +52,9 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     if (showLoading) setIsLoading(true);
     setError(null);
     try {
-      setState(await getAssessmentState(currentSession.access_token));
+      const snapshot = await getAssessmentSnapshot(currentSession.access_token);
+      setMode(snapshot.mode);
+      setState(snapshot.state);
     } catch (requestError) {
       setError(humanizeError(requestError));
     } finally {
@@ -64,6 +69,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
     if (!userId) {
       loadedUserId.current = null;
       setState(null);
+      setMode(null);
       setIsLoading(false);
       setError(null);
       return;
@@ -84,6 +90,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AssessmentContextValue>(
     () => ({
       state,
+      mode,
       isLoading,
       isWorking,
       activity,
@@ -97,9 +104,16 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
         setActivity('starting');
         setError(null);
         try {
-          setState(
-            await startAssessment(currentSession.access_token, profile),
+          const requestStartedAt = Date.now();
+          const snapshot = await startAssessment(
+            currentSession.access_token,
+            profile,
           );
+          if (snapshot.mode === 'dry-run') {
+            await waitForMinimumDuration(requestStartedAt, 10_000);
+          }
+          setMode(snapshot.mode);
+          setState(snapshot.state);
         } catch (requestError) {
           setError(humanizeError(requestError));
           throw requestError;
@@ -133,16 +147,27 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
         const currentSession = sessionRef.current;
         if (!currentSession) return;
         setIsWorking(true);
-        setActivity(round === 3 ? 'finalizing' : 'adapting');
+        const shouldShowActivity = mode !== 'dry-run' || round < 3;
+        setActivity(
+          shouldShowActivity
+            ? round === 3
+              ? 'finalizing'
+              : 'adapting'
+            : null,
+        );
         setError(null);
         try {
-          setState(
-            await completeAssessmentRound(
-              currentSession.access_token,
-              attemptId,
-              round,
-            ),
+          const requestStartedAt = Date.now();
+          const snapshot = await completeAssessmentRound(
+            currentSession.access_token,
+            attemptId,
+            round,
           );
+          if (snapshot.mode === 'dry-run' && round < 3) {
+            await waitForMinimumDuration(requestStartedAt, 10_000);
+          }
+          setMode(snapshot.mode);
+          setState(snapshot.state);
         } catch (requestError) {
           setError(humanizeError(requestError));
           throw requestError;
@@ -162,12 +187,12 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
         );
         setError(null);
         try {
-          setState(
-            await retryAssessmentGeneration(
-              currentSession.access_token,
-              attemptId,
-            ),
+          const snapshot = await retryAssessmentGeneration(
+            currentSession.access_token,
+            attemptId,
           );
+          setMode(snapshot.mode);
+          setState(snapshot.state);
         } catch (requestError) {
           setError(humanizeError(requestError));
           throw requestError;
@@ -176,8 +201,24 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
           setIsWorking(false);
         }
       },
+      async abandon() {
+        const currentSession = sessionRef.current;
+        if (!currentSession || mode !== 'dry-run') return;
+        setIsWorking(true);
+        setError(null);
+        try {
+          const snapshot = await abandonDryRun(currentSession.access_token);
+          setMode(snapshot.mode);
+          setState(snapshot.state);
+        } catch (requestError) {
+          setError(humanizeError(requestError));
+          throw requestError;
+        } finally {
+          setIsWorking(false);
+        }
+      },
     }),
-    [activity, error, isLoading, isWorking, refresh, state],
+    [activity, error, isLoading, isWorking, mode, refresh, state],
   );
 
   return (
@@ -185,6 +226,15 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       {children}
     </AssessmentContext.Provider>
   );
+}
+
+async function waitForMinimumDuration(
+  startedAt: number,
+  minimumMilliseconds: number,
+): Promise<void> {
+  const remaining = minimumMilliseconds - (Date.now() - startedAt);
+  if (remaining <= 0) return;
+  await new Promise<void>((resolve) => window.setTimeout(resolve, remaining));
 }
 
 function updateAnswer(

@@ -18,6 +18,7 @@ ChatGPT Plus/Pro login. No OpenAI API key is used.
 - Per-persona data persistence and RLS in Supabase
 - Responsive, keyboard-accessible React UI
 - GitHub Pages deployment for the static frontend
+- Local-only dry-run mode with fixed questions and isolated results
 
 ## Architecture
 
@@ -47,6 +48,15 @@ npm run dev:ai
 
 Open <http://localhost:5173>. The AI bridge binds only to `127.0.0.1`.
 
+To run the fixed-question debug flow, start the bridge with:
+
+```bash
+npm run dev:ai:dry-run
+```
+
+The bridge is exclusively live or dry-run until restarted. There is no mode
+switch in the browser.
+
 ## Quality checks
 
 ```bash
@@ -66,4 +76,5 @@ before GitHub Pages deployment.
 - [`server/assessment/generator.ts`](./server/assessment/generator.ts) — Codex generation and repair loop
 - [`server/assessment/repository.ts`](./server/assessment/repository.ts) — server-only persistence
 - [`supabase/migrations/202607180001_assessment.sql`](./supabase/migrations/202607180001_assessment.sql) — schema and access policy
+- [`supabase/migrations/202607180002_dry_run.sql`](./supabase/migrations/202607180002_dry_run.sql) — isolated dry-run schema
 - [`src/features/assessment`](./src/features/assessment) — browser state and assessment UI

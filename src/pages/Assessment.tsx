@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, Navigate } from 'react-router';
+import { Link, Navigate, useNavigate } from 'react-router';
 import type { AnswerSelection } from '@shared/assessment/contracts';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -9,8 +9,10 @@ import { AssessmentRunner } from '@/features/assessment/components/AssessmentRun
 import { RoundResult } from '@/features/assessment/components/RoundResult';
 
 export function Assessment() {
+  const navigate = useNavigate();
   const {
     state,
+    mode,
     isLoading,
     isWorking,
     activity,
@@ -19,12 +21,16 @@ export function Assessment() {
     saveAnswer,
     completeRound,
     retry,
+    abandon,
   } = useAssessment();
   const [justCompletedRound, setJustCompletedRound] = useState<1 | 2 | null>(
     null,
   );
 
-  if (activity) return <AssessmentProcessing mode={activity} />;
+  const isDryRun = mode === 'dry-run';
+  if (activity) {
+    return <AssessmentProcessing dryRun={isDryRun} mode={activity} />;
+  }
   if (isLoading || !state) return <AssessmentLoading />;
   if (state.status === 'not_started') {
     return <Navigate replace to="/assessment/profile" />;
@@ -33,6 +39,7 @@ export function Assessment() {
   if (state.status === 'generating') {
     return (
       <AssessmentProcessing
+        dryRun={isDryRun}
         mode={state.round === 1 ? 'starting' : 'adapting'}
         onRetry={() => void retry(state.attemptId).catch(() => undefined)}
       />
@@ -65,6 +72,7 @@ export function Assessment() {
   }
 
   if (state.status === 'completed') {
+    if (isDryRun) return <Navigate replace to="/" />;
     return (
       <div className="mx-auto max-w-3xl py-8 sm:py-14">
         <section className="result-card text-center">
@@ -128,8 +136,25 @@ export function Assessment() {
     }
   }
 
+  async function startOver() {
+    await abandon();
+    navigate('/assessment/profile', { replace: true });
+  }
+
   return (
     <div className="py-2 sm:py-8">
+      {isDryRun && (
+        <div className="mx-auto mb-4 flex max-w-3xl justify-end">
+          <button
+            className="dry-run-reset"
+            disabled={isWorking}
+            onClick={() => void startOver().catch(() => undefined)}
+            type="button"
+          >
+            最初からやり直す
+          </button>
+        </div>
+      )}
       {error && (
         <div className="error-banner mx-auto mb-5 max-w-3xl">
           <span>{error}</span>
