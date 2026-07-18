@@ -1,120 +1,123 @@
-# Setup — Supabase + Google Auth + GitHub Pages
+# Setup — Supabase, Google login, and the personal Codex bridge
 
-The app ships in a **"configure Supabase"** state until you complete these steps.
-Estimated time: 10–15 minutes.
+The frontend uses public Supabase values. The local AI bridge additionally uses
+a server-only Supabase secret so answer keys never reach the browser.
 
-> **Status (2026-07-15, configured via Supabase MCP):** project-ref is
-> `zqmscunpbzungopdegym`. Steps **1** (project + keys), **4** (notes table + RLS
-> SQL), and **6** (repo secrets) are **done**. Remaining manual steps: **2**
-> (Google OAuth client), **3** (enable Google provider + redirect URLs), then
-> **7** (redeploy).
+## 1. Frontend environment
 
----
+Copy `.env.example` to `.env` and fill in:
 
-## 1. Create a Supabase project
+```dotenv
+VITE_SUPABASE_URL=https://zqmscunpbzungopdegym.supabase.co
+VITE_SUPABASE_ANON_KEY=YOUR-PUBLISHABLE-KEY
+VITE_AI_BRIDGE_URL=http://127.0.0.1:8787
+```
 
-1. Go to <https://supabase.com> → **New project**.
-2. Open **Project Settings → API** and copy:
-   - **Project URL** (e.g. `https://zqmscunpbzungopdegym.supabase.co`)
-   - the **anon / publishable key** (`sb_publishable_…` or the legacy `eyJ…` anon key)
-3. Note the **`project-ref`** (it's in the dashboard URL:
-   `https://supabase.com/dashboard/project/zqmscunpbzungopdegym`).
+These values are public. Do not put a secret/service-role key in any `VITE_`
+variable.
 
-## 2. Create a Google OAuth client
+## 2. Google OAuth
 
-1. <https://console.cloud.google.com> → **APIs & Services → OAuth consent screen**
-   (External). Add scopes `openid`, `email`, `profile`.
-2. **Credentials → Create credentials → OAuth client ID → Web application**.
-3. **Authorized redirect URI:**
-   `https://zqmscunpbzungopdegym.supabase.co/auth/v1/callback`
-4. **Authorized JavaScript origins:** `https://seenyo.github.io` and
-   `http://localhost:5173`
-5. Copy the **Client ID** and **Client Secret**.
+In Google Cloud, create a Web OAuth client with:
 
-## 3. Configure Supabase Auth
+- Redirect URI:
+  `https://zqmscunpbzungopdegym.supabase.co/auth/v1/callback`
+- JavaScript origins:
+  `https://seenyo.github.io` and `http://localhost:5173`
 
-1. Supabase Dashboard → **Authentication → Providers → Google** → enable, paste
-   the Client ID / Secret from step 2.
-2. **Authentication → URL Configuration:**
-   - **Site URL:** `https://seenyo.github.io/english-app/`
-   - **Redirect URLs** (add both):
+In Supabase:
+
+1. Authentication → Providers → Google: enable it and add the client ID/secret.
+2. Authentication → URL Configuration:
+   - Site URL: `https://seenyo.github.io/english-app/`
+   - Redirect URLs:
      - `https://seenyo.github.io/english-app/**`
      - `http://localhost:5173/**`
 
-> The `redirectTo` passed to `signInWithOAuth` **must** be in this allow-list, or
-> Supabase silently falls back to the Site URL.
+## 3. Apply the assessment database migration
 
-## 4. Create the `notes` table + RLS (SQL Editor)
+Open the Supabase SQL Editor and run the complete contents of:
 
-Supabase Dashboard → **SQL Editor** → paste → **Run**.
+[`supabase/migrations/202607180001_assessment.sql`](./supabase/migrations/202607180001_assessment.sql)
 
-```sql
--- 1) Demo table (per-user storage proof).
---    user_id is NOT NULL and defaults to the authenticated caller on insert,
---    so honest clients omit user_id; a forged user_id is caught by WITH CHECK.
-create table if not exists notes (
-  id         uuid primary key default gen_random_uuid(),
-  user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  content    text not null default '',
-  created_at timestamptz not null default now()
-);
+The migration creates:
 
--- 2) Lock down: ENABLE and FORCE RLS (FORCE so even the table owner cannot bypass).
-alter table notes enable row level security;
-alter table notes force row level security;
+- `learner_profiles`
+- `assessment_attempts`
+- `assessment_rounds`
+- `assessment_questions` — browser-safe question content
+- `assessment_answer_keys` — server-only
+- `assessment_responses`
 
--- 3) Least-privilege grants: ONLY authenticated gets DML; anon/public get NOTHING.
-revoke all on notes from anon, public;
-grant select, insert, update, delete on notes to authenticated;
+Only the learner profile is directly readable by its authenticated owner.
+Assessment internals are revoked from `anon` and `authenticated`; the personal
+bridge returns a safe projection with no correct answer, CEFR, difficulty, or
+explanation.
 
--- 4) Owner-scoped policy for SELECT/INSERT/UPDATE/DELETE.
-drop policy if exists notes_isolated on notes;
-create policy notes_isolated
-  on notes for all to authenticated
-  using      (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+## 4. Personal AI bridge environment
+
+Copy `.env.server.example` to `.env.server` and fill in:
+
+```dotenv
+AI_BRIDGE_PORT=8787
+AI_ALLOWED_ORIGINS=http://localhost:5173,https://seenyo.github.io
+AI_ALLOWED_EMAILS=first-owned-account@gmail.com,second-owned-account@gmail.com
+SUPABASE_URL=https://zqmscunpbzungopdegym.supabase.co
+SUPABASE_ANON_KEY=YOUR-PUBLISHABLE-KEY
+SUPABASE_SECRET_KEY=YOUR-SERVER-ONLY-SECRET-OR-SERVICE-ROLE-KEY
 ```
 
-**Do NOT accept the dashboard's default `USING(true) WITH CHECK(true)` policy** —
-it would expose every user's rows to every authenticated user.
+Find the server-only key in Supabase Project Settings → API. It belongs only in
+`.env.server`; never paste it into GitHub Pages secrets and never commit it.
 
-## 5. (Recommended) Verify cross-user isolation
+`AI_ALLOWED_EMAILS` is enforced after Supabase validates the JWT. Add only the
+Google accounts you personally own and use for persona testing.
 
-A single-user test passes with **no RLS at all**, so it gives false confidence.
-Run the two-account matrix in `PLAN.md` ("Cross-user isolation test strategy"):
+## 5. Codex subscription login
 
-- **Tier 1** — two real sessions: user B cannot `SELECT`/`UPDATE`/`DELETE` user A's
-  rows, and A cannot see B's rows.
-- **Tier 2** — SQL editor: a spoofed-`user_id` insert is **rejected** by
-  `WITH CHECK`.
-
-## 6. Add repo secrets (so the deploy can bake them in)
+The bridge does not read `auth.json` itself. It lets the Codex SDK use the
+normal saved CLI login.
 
 ```bash
-gh secret set VITE_SUPABASE_URL
-gh secret set VITE_SUPABASE_ANON_KEY
+codex login status
 ```
 
-(or GitHub repo **Settings → Secrets and variables → Actions**)
+Expected output: `Logged in using ChatGPT`. If needed, run `codex login` once.
 
-These are public values (safe under RLS) — but never add the **service_role /
-secret** key anywhere in this repo.
+## 6. Start both processes
 
-## 7. Redeploy
+Terminal 1:
 
 ```bash
-gh workflow run Deploy
+npm run dev
 ```
 
-Then confirm Google login + per-user notes work at
-<https://seenyo.github.io/english-app/>.
-
----
-
-## Local development
+Terminal 2:
 
 ```bash
-cp .env.example .env   # fill in VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
-npm install
-npm run dev            # http://localhost:5173
+npm run dev:ai
 ```
+
+The AI bridge listens only on `127.0.0.1`. Its health endpoint is
+<http://127.0.0.1:8787/health>.
+
+## 7. Optional Codex-only smoke test
+
+```bash
+npm run ai:smoke
+```
+
+This generates one 10-question Round 1 using the saved ChatGPT login. The
+terminal prints only thread ID, repair count, question count, and categories —
+never the answer key.
+
+## 8. GitHub Pages
+
+The static frontend still deploys from `main`. GitHub Actions requires only:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- optionally `VITE_AI_BRIDGE_URL`
+
+For use on the same Mac, the default bridge URL is `http://127.0.0.1:8787`.
+The bridge itself is never deployed to GitHub Pages.

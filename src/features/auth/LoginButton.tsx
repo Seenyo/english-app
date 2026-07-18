@@ -6,7 +6,7 @@ export function LoginButton() {
 
   if (!configured) {
     return (
-      <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+      <div className="rounded-2xl border-3 border-teal-950 bg-yellow-100 p-4 text-sm font-bold text-teal-900">
         Supabase is not configured yet. See <code>SETUP.md</code> to add your
         keys.
       </div>
@@ -15,14 +15,18 @@ export function LoginButton() {
 
   return (
     <div className="space-y-3">
-      <Button variant="secondary" onClick={() => signInWithGoogle()}>
-        Sign in with Google
+      <Button
+        className="h-14 px-7 text-base"
+        variant="secondary"
+        onClick={() => signInWithGoogle()}
+      >
+        Googleでログイン
       </Button>
       {error && (
-        <p className="text-sm text-red-600">
+        <p className="text-sm font-bold text-coral-700">
           {error}{' '}
           <button type="button" className="underline" onClick={clearError}>
-            dismiss
+            閉じる
           </button>
         </p>
       )}

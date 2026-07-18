@@ -1,47 +1,69 @@
-# English Study
+# everyday — personal English study
 
-A minimal scaffold proving the end-to-end plumbing — **no study features yet**.
+A private, adaptive English-learning web app. Google accounts represent the
+owner's test personas; Codex generates placement questions through the owner's
+ChatGPT Plus/Pro login. No OpenAI API key is used.
 
-| Concern  | Stack                                                                  |
-| -------- | ---------------------------------------------------------------------- |
-| UI       | React 19                                                               |
-| Build    | Vite 8 (Rolldown)                                                      |
-| Routing  | React Router v8 (declarative)                                          |
-| Styling  | Tailwind CSS v4 (`@tailwindcss/vite`)                                  |
-| Language | TypeScript 6 (strict)                                                  |
-| Backend  | Supabase — Google OAuth (PKCE) + per-user `notes` (Row Level Security) |
-| Deploy   | GitHub Pages via GitHub Actions                                        |
+## What is implemented
 
-## Develop
+- Google OAuth with Supabase
+- Owner-only Google account allowlist on the local AI bridge
+- Three-round adaptive placement test: 10 + 10 + 5 questions
+- Vocabulary, idiom, and grammar sentence-completion questions
+- Four choices plus “I don't know”; selection is saved immediately
+- Codex SDK thread resume between rounds
+- JSON Schema output plus domain validation
+- Automatic same-thread repair when Codex output cannot be parsed
+- Server-only answer keys and deterministic scoring
+- Per-persona data persistence and RLS in Supabase
+- Responsive, keyboard-accessible React UI
+- GitHub Pages deployment for the static frontend
 
-```bash
-npm install
-cp .env.example .env   # add your Supabase URL + anon key (see SETUP.md)
-npm run dev            # http://localhost:5173
+## Architecture
+
+```text
+GitHub Pages / Vite dev server
+        │ Supabase access token
+        ▼
+Personal AI bridge (127.0.0.1:8787)
+        ├── Supabase: profiles, attempts, questions, answers, results
+        └── Codex SDK: saved ChatGPT Plus/Pro login
 ```
 
-The app runs even without credentials — it shows a "configure Supabase" state
-until keys are added.
+The AI bridge inherits only Codex's login-related process environment. Supabase
+secrets are deliberately removed before the Codex child process starts. Codex
+runs with `--ignore-user-config` from an isolated temporary working directory,
+so user-configured MCP servers and project settings are not available to
+assessment prompts.
 
-## Build
+## Run locally
+
+Complete [`SETUP.md`](./SETUP.md), then use two terminals:
 
 ```bash
-npm run build          # tsc -b (type-check) + vite build + 404.html fallback
-npm run typecheck      # tsc -b only
+npm run dev
+npm run dev:ai
 ```
 
-Output is a fully static `dist/`.
+Open <http://localhost:5173>. The AI bridge binds only to `127.0.0.1`.
 
-## Deploy
+## Quality checks
 
-Pushing to `main` triggers the **Deploy** workflow, which builds and publishes to
-GitHub Pages at <https://seenyo.github.io/english-app/>.
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run ai:smoke  # consumes one Codex turn; prints metadata only
+```
 
-The first deploy renders a "configure Supabase" placeholder. Complete
-**`SETUP.md`** (Supabase project, Google OAuth client, RLS SQL, repo secrets),
-then re-run the workflow.
+The deploy workflow runs lint, type checking, tests, and the production build
+before GitHub Pages deployment.
 
-## Docs
+## Important paths
 
-- [`PLAN.md`](./PLAN.md) — full design (stack, schema + RLS contract, CI).
-- [`SETUP.md`](./SETUP.md) — step-by-step cloud setup.
+- [`shared/assessment/contracts.ts`](./shared/assessment/contracts.ts) — shared request/state contracts
+- [`server/assessment/generator.ts`](./server/assessment/generator.ts) — Codex generation and repair loop
+- [`server/assessment/repository.ts`](./server/assessment/repository.ts) — server-only persistence
+- [`supabase/migrations/202607180001_assessment.sql`](./supabase/migrations/202607180001_assessment.sql) — schema and access policy
+- [`src/features/assessment`](./src/features/assessment) — browser state and assessment UI
