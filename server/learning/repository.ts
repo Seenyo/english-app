@@ -42,6 +42,17 @@ export type AnalysisJobRow = {
   lease_expires_at: string | null;
 };
 
+type VisibleAnalysisJob = Pick<AnalysisJobRow, 'run_count'> & {
+  status: 'pending' | 'running' | 'failed';
+};
+
+type LatestAnalysisState = {
+  status: 'not_started' | 'pending' | 'running' | 'ready' | 'failed';
+  message: string | null;
+};
+
+const maximumAutomaticAnalysisRuns = 3;
+
 type AttemptAnalysisRow = {
   id: string;
   user_id: string;
@@ -423,7 +434,7 @@ export class LearningRepository {
 
   async markAnalysisFailed(job: AnalysisJobRow, error: unknown): Promise<void> {
     const runCount = job.run_count;
-    const terminal = runCount >= 3;
+    const terminal = runCount >= maximumAutomaticAnalysisRuns;
     const nextRetryAt = new Date(
       Date.now() + 2 ** runCount * 30_000,
     ).toISOString();
@@ -484,10 +495,7 @@ export class LearningRepository {
       throw repositoryError('Could not retry assessment analysis.', error);
   }
 
-  async getLatestAnalysisState(userId: string): Promise<{
-    status: 'not_started' | 'pending' | 'running' | 'ready' | 'failed';
-    message: string | null;
-  }> {
+  async getLatestAnalysisState(userId: string): Promise<LatestAnalysisState> {
     const attemptId = await this.getLatestCompletedAttemptId(userId);
     if (!attemptId) return { status: 'not_started', message: null };
     const { data: report, error: reportError } = await this.database
@@ -500,19 +508,13 @@ export class LearningRepository {
     if (report) return { status: 'ready', message: null };
     const { data: job, error: jobError } = await this.database
       .from('assessment_analysis_jobs')
-      .select('status, last_error_message')
+      .select('status, run_count')
       .eq('attempt_id', attemptId)
       .maybeSingle();
     if (jobError)
       throw repositoryError('Could not load analysis status.', jobError);
     if (!job) return { status: 'not_started', message: null };
-    return {
-      status: job.status as 'pending' | 'running' | 'failed',
-      message:
-        job.status === 'failed'
-          ? '詳細分析を完了できませんでした。再試行できます。'
-          : null,
-    };
+    return describeAnalysisJob(job as VisibleAnalysisJob);
   }
 
   async listReports(userId: string): Promise<AssessmentReportSummary[]> {
@@ -676,6 +678,22 @@ export class LearningRepository {
       throw repositoryError('Could not load latest assessment.', error);
     return (data?.id as string | undefined) ?? null;
   }
+}
+
+export function describeAnalysisJob(
+  job: VisibleAnalysisJob,
+): LatestAnalysisState {
+  if (job.status !== 'failed') return { status: job.status, message: null };
+  if (job.run_count < maximumAutomaticAnalysisRuns) {
+    return {
+      status: 'pending',
+      message: '詳細分析で一時的なエラーが発生しました。自動で再試行します。',
+    };
+  }
+  return {
+    status: 'failed',
+    message: '詳細分析を完了できませんでした。再試行できます。',
+  };
 }
 
 export function defaultUserAuthored(
