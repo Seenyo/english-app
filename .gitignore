@@ -16,5 +16,8 @@ dist-ssr
 .DS_Store
 *.log
 .ai-runtime
+.codex/
+words-1900.pdf
+idioms.tsv
 .vscode/*
 !.vscode/extensions.json

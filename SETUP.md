@@ -47,6 +47,8 @@ order:
 
 [`supabase/migrations/202607180004_atomic_persona_bootstrap.sql`](./supabase/migrations/202607180004_atomic_persona_bootstrap.sql)
 
+[`supabase/migrations/202607190001_vocabulary_check.sql`](./supabase/migrations/202607190001_vocabulary_check.sql)
+
 The migration creates:
 
 - `learner_profiles`
@@ -66,7 +68,29 @@ reports, per-feature Codex thread references, audit records, and a durable
 analysis queue. These tables are server-only; even an authenticated browser
 cannot query them directly.
 
-## 4. Personal AI bridge environment
+The vocabulary migration adds the shared word/idiom master, per-user current
+classification, simple classification history, and resumable ordered queues.
+These tables and their functions are also bridge-only.
+
+## 4. Import the vocabulary sources
+
+Place these local source files in the repository root:
+
+- `words-1900.pdf` — English Vocabulary Target 1900, 6th edition
+- `idioms.tsv` — columns `No`, `熟語`, and `意味`
+
+Install Poppler so `pdftotext` is available, then run:
+
+```bash
+brew install poppler
+npm run vocabulary:import
+```
+
+The importer validates a complete 1–1900 word sequence and 1–1684 idiom
+sequence before upserting anything. The source files are intentionally ignored
+by Git; only the parser and migration belong in the public repository.
+
+## 5. Personal AI bridge environment
 
 Copy `.env.server.example` to `.env.server` and fill in:
 
@@ -86,7 +110,7 @@ Find the server-only key in Supabase Project Settings → API. It belongs only i
 `AI_ALLOWED_EMAILS` is enforced after Supabase validates the JWT. Add only the
 Google accounts you personally own and use for persona testing.
 
-## 5. Codex subscription login
+## 6. Codex subscription login
 
 The bridge does not read `auth.json` itself. It lets the Codex SDK use the
 normal saved CLI login.
@@ -97,7 +121,7 @@ codex login status
 
 Expected output: `Logged in using ChatGPT`. If needed, run `codex login` once.
 
-## 6. Start both processes
+## 7. Start both processes
 
 Terminal 1:
 
@@ -114,7 +138,7 @@ npm run dev:ai
 The AI bridge listens only on `127.0.0.1`. Its health endpoint is
 <http://127.0.0.1:8787/health>.
 
-## 7. Optional fixed-question dry-run
+## 8. Optional fixed-question dry-run
 
 Temporarily add the account whose latest completed assessment should become
 the fixed fixture to `.env.server`:
@@ -149,7 +173,7 @@ Dry-run behavior:
   is created or exposed in dry-run mode
 - runs are unlimited; an unfinished run resumes unless explicitly abandoned
 
-## 8. Post-assessment analysis
+## 9. Post-assessment analysis
 
 In live mode, Question 25 is scored first and the browser returns to Home
 immediately. The bridge then resumes the assessment's Codex thread in the
@@ -165,7 +189,7 @@ are reclaimed. A missing local Codex thread is rotated once using the complete
 stored assessment context. Persona goals, motivation, interests, and self-note
 remain user-owned; measured levels and counters remain read-only.
 
-## 9. Optional Codex-only smoke test
+## 10. Optional Codex-only smoke test
 
 ```bash
 npm run ai:smoke
@@ -175,7 +199,7 @@ This generates one 10-question Round 1 using the saved ChatGPT login. The
 terminal prints only thread ID, repair count, question count, and categories —
 never the answer key.
 
-## 10. GitHub Pages
+## 11. GitHub Pages
 
 The static frontend still deploys from `main`. GitHub Actions requires only:
 

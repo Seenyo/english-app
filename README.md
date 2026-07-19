@@ -22,6 +22,9 @@ ChatGPT Plus/Pro login. No OpenAI API key is used.
 - Asynchronous post-assessment analysis in the same Codex thread
 - One versioned learner persona with user-editable goals and AI/system-owned fields
 - Immutable Japanese feedback reports with all 25 answers
+- Four-way vocabulary/idiom mastery check with touch-first swipe cards
+- Offline-first, batched progress saving with one-step undo and 100-card checkpoints
+- Target 1900 sections, self-reported section skipping, and category-based rechecks
 
 ## Architecture
 
@@ -85,3 +88,6 @@ before GitHub Pages deployment.
 - [`src/features/assessment`](./src/features/assessment) — browser state and assessment UI
 - [`server/learning`](./server/learning) — post-assessment analysis, job processing, and document persistence
 - [`src/features/learning`](./src/features/learning) — Persona and feedback browser state
+- [`supabase/migrations/202607190001_vocabulary_check.sql`](./supabase/migrations/202607190001_vocabulary_check.sql) — vocabulary masters, progress, history, and resumable sessions
+- [`server/vocabulary`](./server/vocabulary) — server-only vocabulary repository and source parsers
+- [`src/features/vocabulary`](./src/features/vocabulary) — setup, offline queue, swipe interaction, and progress UI

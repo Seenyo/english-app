@@ -5,6 +5,7 @@ import {
   eikenGrades,
   optionIdSchema,
 } from '../assessment/contracts.ts';
+import { vocabularyCountSchema } from '../vocabulary/contracts.ts';
 
 const optionalNote = z.string().trim().max(1200);
 
@@ -66,6 +67,11 @@ export const personaMetricsSchema = z.object({
   totalStudyMinutes: z.number().int().nonnegative(),
   lastAssessedAt: z.string().datetime().nullable(),
   lastActivityAt: z.string().datetime().nullable(),
+  vocabularyCheck: z.object({
+    words: vocabularyCountSchema,
+    idioms: vocabularyCountSchema,
+    lastCheckedAt: z.string().datetime().nullable(),
+  }),
 });
 export type PersonaMetrics = z.infer<typeof personaMetricsSchema>;
 

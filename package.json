@@ -11,6 +11,7 @@
     "ai:start:dry-run": "ASSESSMENT_MODE=dry-run npm run ai:start",
     "ai:smoke": "node --env-file-if-exists=.env.server --import tsx server/scripts/smoke.ts",
     "dry-run:seed": "node --env-file-if-exists=.env.server --import tsx server/scripts/seed-dry-run.ts",
+    "vocabulary:import": "node --env-file-if-exists=.env.server --import tsx server/scripts/import-vocabulary.ts",
     "build": "tsc -b && vite build && node scripts/postbuild.mjs",
     "typecheck": "tsc -b",
     "test": "node --import tsx --test server/**/*.test.ts shared/**/*.test.ts",

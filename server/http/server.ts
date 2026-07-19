@@ -8,6 +8,12 @@ import {
   startAssessmentRequestSchema,
 } from '../../shared/assessment/contracts.ts';
 import { updatePersonaRequestSchema } from '../../shared/learning/contracts.ts';
+import {
+  finishVocabularySessionRequestSchema,
+  saveVocabularyOperationsRequestSchema,
+  startVocabularySessionRequestSchema,
+  vocabularyKindSchema,
+} from '../../shared/vocabulary/contracts.ts';
 import { AssessmentRepositoryError } from '../assessment/repository.ts';
 import { createAssessmentRuntime } from '../assessment/runtime.ts';
 import { createAssessmentThreadFactory } from '../assessment/generator.ts';
@@ -15,6 +21,8 @@ import type { AuthorizeRequest } from '../auth/authorize.ts';
 import type { ServerConfig } from '../config.ts';
 import { LearningRepositoryError } from '../learning/repository.ts';
 import { LearningService } from '../learning/service.ts';
+import { VocabularyRepositoryError } from '../vocabulary/repository.ts';
+import { VocabularyService } from '../vocabulary/service.ts';
 import { readJsonBody } from './body.ts';
 import { HttpError } from './errors.ts';
 
@@ -27,6 +35,7 @@ export function createAiBridgeServer(
       ? createAssessmentThreadFactory(config)
       : null;
   const learningService = LearningService.create(config, threadFactory);
+  const vocabularyService = VocabularyService.create(config);
   const assessmentRuntime = createAssessmentRuntime(
     config,
     threadFactory,
@@ -69,6 +78,94 @@ export function createAiBridgeServer(
       }
 
       const user = await authorize(request);
+      if (
+        request.method === 'GET' &&
+        url.pathname === '/v1/vocabulary/overview'
+      ) {
+        sendJson(response, 200, await vocabularyService.getOverview(user));
+        return;
+      }
+
+      if (
+        request.method === 'POST' &&
+        url.pathname === '/v1/vocabulary/sessions'
+      ) {
+        const parsed = startVocabularySessionRequestSchema.safeParse(
+          await readJsonBody(request),
+        );
+        if (!parsed.success) throw invalidRequest(parsed.error.issues);
+        sendJson(
+          response,
+          200,
+          await vocabularyService.startSession(user, parsed.data),
+        );
+        return;
+      }
+
+      if (
+        request.method === 'GET' &&
+        url.pathname === '/v1/vocabulary/sessions/current'
+      ) {
+        const kind = vocabularyKindSchema.safeParse(
+          url.searchParams.get('kind'),
+        );
+        if (!kind.success) throw invalidRequest(kind.error.issues);
+        sendJson(
+          response,
+          200,
+          await vocabularyService.getResumableSession(user, kind.data),
+        );
+        return;
+      }
+
+      const vocabularySessionRoute = url.pathname.match(
+        /^\/v1\/vocabulary\/sessions\/([0-9a-f-]{36})$/i,
+      );
+      if (request.method === 'GET' && vocabularySessionRoute) {
+        sendJson(
+          response,
+          200,
+          await vocabularyService.loadSession(user, vocabularySessionRoute[1]!),
+        );
+        return;
+      }
+
+      const vocabularyOperationsRoute = url.pathname.match(
+        /^\/v1\/vocabulary\/sessions\/([0-9a-f-]{36})\/operations$/i,
+      );
+      if (request.method === 'PUT' && vocabularyOperationsRoute) {
+        const parsed = saveVocabularyOperationsRequestSchema.safeParse(
+          await readJsonBody(request),
+        );
+        if (!parsed.success) throw invalidRequest(parsed.error.issues);
+        await vocabularyService.saveOperations(
+          user,
+          vocabularyOperationsRoute[1]!,
+          parsed.data.operations,
+          parsed.data.position,
+        );
+        response.writeHead(204).end();
+        return;
+      }
+
+      const vocabularyFinishRoute = url.pathname.match(
+        /^\/v1\/vocabulary\/sessions\/([0-9a-f-]{36})\/finish$/i,
+      );
+      if (request.method === 'POST' && vocabularyFinishRoute) {
+        const parsed = finishVocabularySessionRequestSchema.safeParse(
+          await readJsonBody(request),
+        );
+        if (!parsed.success) throw invalidRequest(parsed.error.issues);
+        await vocabularyService.finishSession(
+          user,
+          vocabularyFinishRoute[1]!,
+          parsed.data.status,
+          parsed.data.position,
+        );
+        response.writeHead(204).end();
+        return;
+      }
+
       if (
         request.method === 'GET' &&
         url.pathname === '/v1/learning/overview'
@@ -277,6 +374,22 @@ function handleError(response: ServerResponse, error: unknown) {
         code: error.code ?? 'learning_data_error',
         message: error.message,
         retryable: true,
+      },
+    });
+    return;
+  }
+
+  if (error instanceof VocabularyRepositoryError) {
+    const status =
+      error.code === 'vocabulary_session_not_found' ||
+      error.code === 'vocabulary_queue_empty'
+        ? 404
+        : 500;
+    sendJson(response, status, {
+      error: {
+        code: error.code ?? 'vocabulary_data_error',
+        message: error.message,
+        retryable: status >= 500,
       },
     });
     return;

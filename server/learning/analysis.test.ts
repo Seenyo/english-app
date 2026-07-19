@@ -150,6 +150,27 @@ function persona(): LearnerPersona {
       totalStudyMinutes: 0,
       lastAssessedAt: '2026-07-18T00:00:00.000Z',
       lastActivityAt: '2026-07-18T00:00:00.000Z',
+      vocabularyCheck: {
+        words: {
+          total: 1900,
+          classified: 0,
+          unclassified: 1900,
+          mastered: 0,
+          mostlyKnown: 0,
+          mostlyUnknown: 0,
+          unknown: 0,
+        },
+        idioms: {
+          total: 1684,
+          classified: 0,
+          unclassified: 1684,
+          mastered: 0,
+          mostlyKnown: 0,
+          mostlyUnknown: 0,
+          unknown: 0,
+        },
+        lastCheckedAt: null,
+      },
     },
     updatedAt: '2026-07-18T00:00:00.000Z',
   };

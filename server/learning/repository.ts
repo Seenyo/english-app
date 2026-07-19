@@ -14,6 +14,7 @@ import {
   type PersonaUserAuthored,
 } from '../../shared/learning/contracts.ts';
 import type { LearnerProfile } from '../../shared/assessment/contracts.ts';
+import { vocabularyOverviewSchema } from '../../shared/vocabulary/contracts.ts';
 import type { ServerConfig } from '../config.ts';
 import type {
   AnalysisQuestionInput,
@@ -597,7 +598,7 @@ export class LearningRepository {
   }
 
   private async getMetrics(userId: string): Promise<PersonaMetrics> {
-    const [attempts, responses, latest] = await Promise.all([
+    const [attempts, responses, latest, vocabularyResult] = await Promise.all([
       this.database
         .from('assessment_attempts')
         .select('id', { count: 'exact', head: true })
@@ -615,6 +616,9 @@ export class LearningRepository {
         .order('completed_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
+      this.database.rpc('get_vocabulary_check_overview', {
+        p_user_id: userId,
+      }),
     ]);
     if (attempts.error)
       throw repositoryError('Could not count assessments.', attempts.error);
@@ -622,19 +626,38 @@ export class LearningRepository {
       throw repositoryError('Could not count answers.', responses.error);
     if (latest.error)
       throw repositoryError('Could not load latest assessment.', latest.error);
+    if (vocabularyResult.error)
+      throw repositoryError(
+        'Could not load vocabulary metrics.',
+        vocabularyResult.error,
+      );
+    const vocabulary = vocabularyOverviewSchema.parse(vocabularyResult.data);
     const rawLastAssessedAt =
       (latest.data?.completed_at as string | null) ?? null;
     const lastAssessedAt = rawLastAssessedAt
       ? normalizeDatabaseTimestamp(rawLastAssessedAt)
       : null;
+    const lastCheckedAt = vocabulary.lastCheckedAt
+      ? normalizeDatabaseTimestamp(vocabulary.lastCheckedAt)
+      : null;
+    const lastActivityAt =
+      [lastAssessedAt, lastCheckedAt]
+        .filter((value): value is string => Boolean(value))
+        .sort()
+        .at(-1) ?? null;
     return personaMetricsSchema.parse({
       currentCefr: latest.data?.estimated_cefr ?? null,
       assessmentsCompleted: attempts.count ?? 0,
       assessmentQuestionsAnswered: responses.count ?? 0,
-      learnedWords: 0,
+      learnedWords: vocabulary.words.mastered + vocabulary.words.mostlyKnown,
       totalStudyMinutes: 0,
       lastAssessedAt,
-      lastActivityAt: lastAssessedAt,
+      lastActivityAt,
+      vocabularyCheck: {
+        words: vocabulary.words,
+        idioms: vocabulary.idioms,
+        lastCheckedAt,
+      },
     });
   }
 

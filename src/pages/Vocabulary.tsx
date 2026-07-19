@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import {
   vocabularyActivities,
   vocabularyScopeLabels,
+  useVocabulary,
   type VocabularyActivityKey,
   type VocabularyScopeKey,
 } from '@/features/vocabulary';
@@ -115,10 +116,20 @@ function CheckScopeChoices({
   openScope: CheckScope | null;
   onToggle: (scope: CheckScope | null) => void;
 }) {
+  const { overview, isLoading, error } = useVocabulary();
   return (
     <div className="check-scope-list">
       {(['words', 'idioms'] as const).map((scope) => {
         const isOpen = openScope === scope;
+        const kind = scope === 'words' ? 'word' : 'idiom';
+        const counts = scope === 'words' ? overview?.words : overview?.idioms;
+        const resumable = overview?.resumableSessions.some(
+          (session) => session.kind === kind,
+        );
+        const canContinue =
+          resumable ||
+          Boolean(counts && counts.classified > 0 && counts.unclassified > 0);
+        const canRecheck = Boolean(counts && counts.classified > 0);
         return (
           <div className="check-scope-item" key={scope}>
             <button
@@ -132,20 +143,44 @@ function CheckScopeChoices({
             </button>
             {isOpen && (
               <div className="check-start-options">
-                <button disabled type="button">
+                {isLoading && (
+                  <p className="check-option-loading">進捗を確認中…</p>
+                )}
+                {!isLoading && canContinue && (
+                  <Link
+                    className="check-start-option"
+                    to={`/study/vocabulary/check/${scope}/setup?mode=continue`}
+                  >
+                    <span>
+                      <strong>続きから</strong>
+                      <small>次の未判定項目から再開</small>
+                    </span>
+                    <em aria-hidden="true">→</em>
+                  </Link>
+                )}
+                <Link
+                  className="check-start-option"
+                  to={`/study/vocabulary/check/${scope}/setup?mode=restart`}
+                >
                   <span>
-                    <strong>続きから</strong>
-                    <small>前回の続きからチェック</small>
+                    <strong>{scope === 'words' ? '初めから' : 'すべて'}</strong>
+                    <small>番号順に最初からチェック</small>
                   </span>
-                  <em>準備中</em>
-                </button>
-                <button disabled type="button">
-                  <span>
-                    <strong>初めから</strong>
-                    <small>最初の項目からチェック</small>
-                  </span>
-                  <em>準備中</em>
-                </button>
+                  <em aria-hidden="true">→</em>
+                </Link>
+                {!isLoading && canRecheck && (
+                  <Link
+                    className="check-start-option"
+                    to={`/study/vocabulary/check/${scope}/setup?mode=recheck`}
+                  >
+                    <span>
+                      <strong>再チェック</strong>
+                      <small>分類済みの項目を選んで確認</small>
+                    </span>
+                    <em aria-hidden="true">↻</em>
+                  </Link>
+                )}
+                {error && <p className="check-option-error">{error}</p>}
               </div>
             )}
           </div>

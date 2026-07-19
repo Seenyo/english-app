@@ -1,10 +1,16 @@
 import { Navigate, Link } from 'react-router';
+import type { CSSProperties } from 'react';
 import type { AssessmentState } from '@shared/assessment/contracts';
+import type {
+  VocabularyCount,
+  VocabularyOverview,
+} from '@shared/vocabulary/contracts';
 import { Spinner } from '@/components/ui/Spinner';
 import { NavigationIcon } from '@/components/ui/NavigationIcon';
 import { useAssessment } from '@/features/assessment';
 import { useAuth } from '@/features/auth';
 import { useLearning } from '@/features/learning';
+import { useVocabulary } from '@/features/vocabulary';
 
 export function Dashboard() {
   const { user } = useAuth();
@@ -15,6 +21,8 @@ export function Dashboard() {
     isSaving: isRetryingAnalysis,
     retryAnalysis,
   } = useLearning();
+  const { overview: vocabularyOverview, isLoading: isVocabularyLoading } =
+    useVocabulary();
 
   if (isLoading) {
     return (
@@ -130,6 +138,11 @@ export function Dashboard() {
         </div>
       </section>
 
+      <VocabularyProgressCard
+        isLoading={isVocabularyLoading}
+        overview={vocabularyOverview}
+      />
+
       <section className="home-feedback-section">
         <div className="home-feedback-heading">
           <div>
@@ -165,6 +178,113 @@ export function Dashboard() {
           <FutureCard icon="Aa" title="覚えた単語・熟語" color="bg-green-200" />
         </div>
       </section>
+    </div>
+  );
+}
+
+function VocabularyProgressCard({
+  overview,
+  isLoading,
+}: {
+  overview: VocabularyOverview | null;
+  isLoading: boolean;
+}) {
+  const total = (overview?.words.total ?? 0) + (overview?.idioms.total ?? 0);
+  const classified =
+    (overview?.words.classified ?? 0) + (overview?.idioms.classified ?? 0);
+  const progress = total === 0 ? 0 : Math.round((classified / total) * 100);
+  const ratingTotals = overview
+    ? [
+        {
+          label: '完璧',
+          value: overview.words.mastered + overview.idioms.mastered,
+          className: 'rating-mastered',
+        },
+        {
+          label: '覚えている',
+          value: overview.words.mostlyKnown + overview.idioms.mostlyKnown,
+          className: 'rating-mostly-known',
+        },
+        {
+          label: '少し曖昧',
+          value: overview.words.mostlyUnknown + overview.idioms.mostlyUnknown,
+          className: 'rating-mostly-unknown',
+        },
+        {
+          label: '分からない',
+          value: overview.words.unknown + overview.idioms.unknown,
+          className: 'rating-unknown',
+        },
+      ]
+    : [];
+
+  return (
+    <section className="vocabulary-progress-card">
+      <div className="vocabulary-progress-heading">
+        <div>
+          <p className="eyebrow">Vocabulary pulse</p>
+          <h2>単語・熟語の現在地</h2>
+          <p>
+            {isLoading
+              ? '進捗を読み込んでいます…'
+              : total === 0
+                ? 'カードデータを準備しています。'
+                : `${classified.toLocaleString()} / ${total.toLocaleString()}件を分類しました。`}
+          </p>
+        </div>
+        <div
+          className="vocabulary-progress-ring"
+          style={{ '--progress': `${progress * 3.6}deg` } as CSSProperties}
+        >
+          <strong>{progress}%</strong>
+          <small>CHECKED</small>
+        </div>
+      </div>
+
+      {overview && total > 0 && (
+        <>
+          <div className="vocabulary-source-progress">
+            <VocabularySourceRow count={overview.words} label="単語" />
+            <VocabularySourceRow count={overview.idioms} label="熟語" />
+          </div>
+          <div className="vocabulary-rating-summary">
+            {ratingTotals.map((rating) => (
+              <div className={rating.className} key={rating.label}>
+                <small>{rating.label}</small>
+                <strong>{rating.value.toLocaleString()}</strong>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <Link className="vocabulary-progress-link" to="/study/vocabulary">
+        習熟度チェックを開く <span aria-hidden="true">→</span>
+      </Link>
+    </section>
+  );
+}
+
+function VocabularySourceRow({
+  label,
+  count,
+}: {
+  label: string;
+  count: VocabularyCount;
+}) {
+  const progress =
+    count.total === 0 ? 0 : (count.classified / count.total) * 100;
+  return (
+    <div className="vocabulary-source-row">
+      <div>
+        <strong>{label}</strong>
+        <span>
+          {count.classified.toLocaleString()} / {count.total.toLocaleString()}
+        </span>
+      </div>
+      <div aria-hidden="true">
+        <span style={{ width: `${progress}%` }} />
+      </div>
     </div>
   );
 }

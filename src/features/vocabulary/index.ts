@@ -9,3 +9,14 @@ export type {
   VocabularyActivityKey,
   VocabularyScopeKey,
 } from './catalog';
+export { VocabularyProvider } from './VocabularyProvider';
+export { useVocabulary } from './useVocabulary';
+export {
+  cacheVocabularySession,
+  queueVocabularyProgress,
+  readCachedVocabularySession,
+  readQueuedVocabularyOperations,
+  removeCachedVocabularySession,
+  removeQueuedVocabularyOperations,
+} from './offline';
+export type { QueuedVocabularyOperation } from './offline';
