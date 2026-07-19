@@ -386,39 +386,20 @@ export class AssessmentRepository {
 
   async saveAnswer(
     attempt: AttemptRow,
+    displayedRound: 1 | 2 | 3,
     questionExternalId: string,
     answer: AnswerSelection,
   ): Promise<void> {
-    if (attempt.status !== 'answering') {
-      throw new AssessmentRepositoryError(
-        'The assessment is not accepting answers.',
-        'assessment_not_answering',
-      );
-    }
-
-    const round = await this.getRound(attempt.id, attempt.current_round);
-    const { data: questionData, error: questionError } = await this.database
-      .from('assessment_questions')
-      .select('id')
-      .eq('round_id', round.id)
-      .eq('external_id', questionExternalId)
-      .single();
-    if (questionError) {
-      throw repositoryError('Question was not found.', questionError);
-    }
-
-    const { error } = await this.database.from('assessment_responses').upsert(
-      {
-        question_id: (questionData as { id: string }).id,
-        attempt_id: attempt.id,
-        user_id: attempt.user_id,
-        selected_option_id: answer.kind === 'option' ? answer.optionId : null,
-        is_unknown: answer.kind === 'unknown',
-        answered_at: new Date().toISOString(),
-      },
-      { onConflict: 'question_id' },
-    );
+    const { data, error } = await this.database.rpc('save_assessment_answer', {
+      p_user_id: attempt.user_id,
+      p_attempt_id: attempt.id,
+      p_round: displayedRound,
+      p_question_external_id: questionExternalId,
+      p_selected_option_id: answer.kind === 'option' ? answer.optionId : null,
+      p_is_unknown: answer.kind === 'unknown',
+    });
     if (error) throw repositoryError('Could not save answer.', error);
+    assertAnswerSaved(data, 'assessment');
   }
 
   async getRoundStatus(
@@ -719,4 +700,25 @@ function repositoryError(
   );
 }
 
+function assertAnswerSaved(
+  outcome: unknown,
+  mode: 'assessment' | 'dry-run',
+): asserts outcome is 'saved' {
+  if (outcome === 'saved') return;
+
+  const messages: Record<string, string> = {
+    assessment_not_found: 'The assessment was not found.',
+    assessment_not_answering: 'The assessment is not accepting answers.',
+    round_mismatch: 'The displayed round is no longer active.',
+    question_not_found: 'The question was not found in the displayed round.',
+    invalid_answer: 'The answer payload is invalid.',
+  };
+  const code = typeof outcome === 'string' ? outcome : 'database_error';
+  throw new AssessmentRepositoryError(
+    messages[code] ?? `Could not save ${mode} answer.`,
+    code,
+  );
+}
+
+export { assertAnswerSaved };
 export type { AttemptRow };

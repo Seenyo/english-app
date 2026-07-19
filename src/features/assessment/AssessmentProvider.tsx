@@ -124,6 +124,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       },
       async saveAnswer(
         attemptId: string,
+        round: 1 | 2 | 3,
         questionId: string,
         answer: AnswerSelection,
       ) {
@@ -134,6 +135,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
           await saveAssessmentAnswer(
             currentSession.access_token,
             attemptId,
+            round,
             questionId,
             answer,
           );
@@ -149,11 +151,7 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
         setIsWorking(true);
         const shouldShowActivity = mode !== 'dry-run' || round < 3;
         setActivity(
-          shouldShowActivity
-            ? round === 3
-              ? 'finalizing'
-              : 'adapting'
-            : null,
+          shouldShowActivity ? (round === 3 ? 'finalizing' : 'adapting') : null,
         );
         setError(null);
         try {

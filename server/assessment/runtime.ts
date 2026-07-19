@@ -18,6 +18,7 @@ export type AssessmentRuntime = {
   saveAnswer(
     user: User,
     attemptId: string,
+    round: 1 | 2 | 3,
     questionId: string,
     answer: AnswerSelection,
   ): Promise<void>;
@@ -51,8 +52,8 @@ export function createAssessmentRuntime(
       await learningService.preparePersona(user.id, profile);
       return { mode: 'live', state: await service.start(user, profile) };
     },
-    saveAnswer(user, attemptId, questionId, answer) {
-      return service.saveAnswer(user, attemptId, questionId, answer);
+    saveAnswer(user, attemptId, round, questionId, answer) {
+      return service.saveAnswer(user, attemptId, round, questionId, answer);
     },
     async completeRound(user, attemptId, round) {
       const state = await service.completeRound(user, attemptId, round);

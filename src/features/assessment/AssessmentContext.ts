@@ -18,6 +18,7 @@ export type AssessmentContextValue = {
   start: (profile: LearnerProfile) => Promise<void>;
   saveAnswer: (
     attemptId: string,
+    round: 1 | 2 | 3,
     questionId: string,
     answer: AnswerSelection,
   ) => Promise<void>;
@@ -26,11 +27,7 @@ export type AssessmentContextValue = {
   abandon: () => Promise<void>;
 };
 
-export type AssessmentActivity =
-  | 'starting'
-  | 'adapting'
-  | 'finalizing'
-  | null;
+export type AssessmentActivity = 'starting' | 'adapting' | 'finalizing' | null;
 
 export const AssessmentContext = createContext<
   AssessmentContextValue | undefined

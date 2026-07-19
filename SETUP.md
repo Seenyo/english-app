@@ -64,6 +64,8 @@ The repository applies these files in timestamp order:
 
 [`supabase/migrations/20260719090126_index_vocabulary_session_counts.sql`](./supabase/migrations/20260719090126_index_vocabulary_session_counts.sql)
 
+[`supabase/migrations/20260719130040_save_assessment_answers_atomically.sql`](./supabase/migrations/20260719130040_save_assessment_answers_atomically.sql)
+
 ### One-time repair for the existing `english-app` project
 
 The first five application migrations were originally run through the SQL

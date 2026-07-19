@@ -22,7 +22,10 @@ export class DryRunAssessmentService {
     return { mode: 'dry-run', state: await this.repository.loadState(user.id) };
   }
 
-  async start(user: User, profile: LearnerProfile): Promise<AssessmentSnapshot> {
+  async start(
+    user: User,
+    profile: LearnerProfile,
+  ): Promise<AssessmentSnapshot> {
     void profile;
     return this.runExclusive(async () => {
       await this.repository.createAttempt(user.id);
@@ -33,11 +36,12 @@ export class DryRunAssessmentService {
   async saveAnswer(
     user: User,
     attemptId: string,
+    round: 1 | 2 | 3,
     questionId: string,
     answer: AnswerSelection,
   ): Promise<void> {
     const attempt = await this.repository.getOwnedAttempt(user.id, attemptId);
-    await this.repository.saveAnswer(attempt, questionId, answer);
+    await this.repository.saveAnswer(attempt, round, questionId, answer);
   }
 
   async completeRound(

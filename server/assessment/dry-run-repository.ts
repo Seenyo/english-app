@@ -8,7 +8,7 @@ import {
   type RoundSummary,
 } from '../../shared/assessment/contracts.ts';
 import type { ServerConfig } from '../config.ts';
-import { AssessmentRepositoryError } from './repository.ts';
+import { AssessmentRepositoryError, assertAnswerSaved } from './repository.ts';
 import {
   estimateCefr,
   scoreRound,
@@ -100,7 +100,8 @@ export class DryRunRepository {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (setError) throw dryRunError('Could not load dry-run fixture.', setError);
+    if (setError)
+      throw dryRunError('Could not load dry-run fixture.', setError);
     if (!setData) {
       throw new AssessmentRepositoryError(
         'Dry-run用の固定問題がまだ準備されていません。セットアップ手順を実行してください。',
@@ -169,38 +170,20 @@ export class DryRunRepository {
 
   async saveAnswer(
     attempt: DryRunAttemptRow,
+    displayedRound: 1 | 2 | 3,
     questionExternalId: string,
     answer: AnswerSelection,
   ): Promise<void> {
-    if (attempt.status !== 'answering') {
-      throw new AssessmentRepositoryError(
-        'The dry-run is not accepting answers.',
-        'assessment_not_answering',
-      );
-    }
-    const { data: question, error: questionError } = await this.database
-      .from('dry_run_questions')
-      .select('id')
-      .eq('question_set_id', attempt.question_set_id)
-      .eq('round_number', attempt.current_round)
-      .eq('external_id', questionExternalId)
-      .single();
-    if (questionError) {
-      throw dryRunError('Dry-run question was not found.', questionError);
-    }
-
-    const { error } = await this.database.from('dry_run_responses').upsert(
-      {
-        attempt_id: attempt.id,
-        question_id: (question as { id: string }).id,
-        user_id: attempt.user_id,
-        selected_option_id: answer.kind === 'option' ? answer.optionId : null,
-        is_unknown: answer.kind === 'unknown',
-        answered_at: new Date().toISOString(),
-      },
-      { onConflict: 'attempt_id,question_id' },
-    );
+    const { data, error } = await this.database.rpc('save_dry_run_answer', {
+      p_user_id: attempt.user_id,
+      p_attempt_id: attempt.id,
+      p_round: displayedRound,
+      p_question_external_id: questionExternalId,
+      p_selected_option_id: answer.kind === 'option' ? answer.optionId : null,
+      p_is_unknown: answer.kind === 'unknown',
+    });
     if (error) throw dryRunError('Could not save dry-run answer.', error);
+    assertAnswerSaved(data, 'dry-run');
   }
 
   async completeRound(
@@ -229,7 +212,8 @@ export class DryRunRepository {
       .eq('attempt_id', attempt.id)
       .eq('round_number', round)
       .eq('status', 'answering');
-    if (roundError) throw dryRunError('Could not score dry-run round.', roundError);
+    if (roundError)
+      throw dryRunError('Could not score dry-run round.', roundError);
 
     if (round < 3) {
       const nextRound = (round + 1) as 2 | 3;
@@ -240,7 +224,10 @@ export class DryRunRepository {
         .eq('round_number', nextRound)
         .eq('status', 'pending');
       if (nextRoundError) {
-        throw dryRunError('Could not activate next dry-run round.', nextRoundError);
+        throw dryRunError(
+          'Could not activate next dry-run round.',
+          nextRoundError,
+        );
       }
       const { error: attemptError } = await this.database
         .from('dry_run_attempts')
@@ -275,7 +262,8 @@ export class DryRunRepository {
       .eq('id', attempt.id)
       .eq('user_id', attempt.user_id)
       .eq('status', 'answering');
-    if (attemptError) throw dryRunError('Could not complete dry-run.', attemptError);
+    if (attemptError)
+      throw dryRunError('Could not complete dry-run.', attemptError);
   }
 
   async loadState(userId: string): Promise<AssessmentState> {
@@ -436,7 +424,8 @@ export class DryRunRepository {
         .select('id', { count: 'exact', head: true })
         .eq('question_set_id', questionSetId)
         .eq('round_number', round);
-      if (error) throw dryRunError('Could not validate dry-run fixture.', error);
+      if (error)
+        throw dryRunError('Could not validate dry-run fixture.', error);
       if (count !== expectedQuestionCount(round)) {
         throw new AssessmentRepositoryError(
           `Dry-run fixture Round ${round} has ${count ?? 0} questions.`,

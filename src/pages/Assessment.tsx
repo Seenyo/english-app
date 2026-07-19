@@ -18,6 +18,7 @@ export function Assessment() {
     activity,
     error,
     clearError,
+    refresh,
     saveAnswer,
     completeRound,
     retry,
@@ -31,7 +32,16 @@ export function Assessment() {
   if (activity) {
     return <AssessmentProcessing dryRun={isDryRun} mode={activity} />;
   }
-  if (isLoading || !state) return <AssessmentLoading />;
+  if (isLoading) return <AssessmentLoading />;
+  if (!state && error) {
+    return (
+      <AssessmentLoadFailure
+        message={error}
+        onRetry={() => void refresh().catch(() => undefined)}
+      />
+    );
+  }
+  if (!state) return <AssessmentLoading />;
   if (state.status === 'not_started') {
     return <Navigate replace to="/assessment/profile" />;
   }
@@ -121,7 +131,12 @@ export function Assessment() {
   }
 
   async function answer(questionId: string, selection: AnswerSelection) {
-    await saveAnswer(answeringState.attemptId, questionId, selection);
+    await saveAnswer(
+      answeringState.attemptId,
+      answeringState.round,
+      questionId,
+      selection,
+    );
   }
 
   async function finishRound() {
@@ -172,6 +187,31 @@ export function Assessment() {
         onSaveAnswer={answer}
         state={answeringState}
       />
+    </div>
+  );
+}
+
+function AssessmentLoadFailure({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="mx-auto flex min-h-[65vh] max-w-xl items-center justify-center px-4 text-center">
+      <section className="result-card">
+        <span className="text-5xl" aria-hidden="true">
+          ↻
+        </span>
+        <h1 className="mt-4 text-3xl font-black text-teal-950">
+          読み込みに失敗しました
+        </h1>
+        <p className="mt-3 font-medium leading-7 text-teal-700">{message}</p>
+        <Button className="mt-7 min-w-44" onClick={onRetry}>
+          もう一度読み込む
+        </Button>
+      </section>
     </div>
   );
 }

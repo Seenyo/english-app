@@ -92,5 +92,6 @@ before GitHub Pages deployment.
 - [`supabase/migrations/202607190001_vocabulary_check.sql`](./supabase/migrations/202607190001_vocabulary_check.sql) — vocabulary masters, progress, history, and resumable sessions
 - [`supabase/migrations/20260719071503_fix_vocabulary_session_completion_outcomes.sql`](./supabase/migrations/20260719071503_fix_vocabulary_session_completion_outcomes.sql) — completed outcome for all-skipped vocabulary sessions
 - [`supabase/migrations/20260719090126_index_vocabulary_session_counts.sql`](./supabase/migrations/20260719090126_index_vocabulary_session_counts.sql) — indexed session summary counts
+- [`supabase/migrations/20260719130040_save_assessment_answers_atomically.sql`](./supabase/migrations/20260719130040_save_assessment_answers_atomically.sql) — stale-round-safe live and dry-run answer writes
 - [`server/vocabulary`](./server/vocabulary) — server-only vocabulary repository and source parsers
 - [`src/features/vocabulary`](./src/features/vocabulary) — setup, offline queue, swipe interaction, and progress UI

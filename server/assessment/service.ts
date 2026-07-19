@@ -69,11 +69,12 @@ export class AssessmentService {
   async saveAnswer(
     user: User,
     attemptId: string,
+    round: 1 | 2 | 3,
     questionId: string,
     answer: AnswerSelection,
   ): Promise<void> {
     const attempt = await this.repository.getOwnedAttempt(user.id, attemptId);
-    await this.repository.saveAnswer(attempt, questionId, answer);
+    await this.repository.saveAnswer(attempt, round, questionId, answer);
   }
 
   async completeRound(

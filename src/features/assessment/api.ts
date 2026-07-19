@@ -41,12 +41,13 @@ export function startAssessment(
 export async function saveAssessmentAnswer(
   token: string,
   attemptId: string,
+  round: 1 | 2 | 3,
   questionId: string,
   answer: AnswerSelection,
 ): Promise<void> {
   await request(
     token,
-    `/v1/assessments/${encodeURIComponent(attemptId)}/answers/${encodeURIComponent(questionId)}`,
+    `/v1/assessments/${encodeURIComponent(attemptId)}/rounds/${round}/answers/${encodeURIComponent(questionId)}`,
     { method: 'PUT', body: { answer } },
   );
 }

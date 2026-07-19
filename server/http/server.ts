@@ -256,7 +256,7 @@ export function createAiBridgeServer(
       }
 
       const answerRoute = url.pathname.match(
-        /^\/v1\/assessments\/([0-9a-f-]{36})\/answers\/(q-[1-9][0-9]*)$/i,
+        /^\/v1\/assessments\/([0-9a-f-]{36})\/rounds\/([1-3])\/answers\/(q-[1-9][0-9]*)$/i,
       );
       if (request.method === 'PUT' && answerRoute) {
         const parsed = saveAnswerRequestSchema.safeParse(
@@ -266,7 +266,8 @@ export function createAiBridgeServer(
         await assessmentRuntime.saveAnswer(
           user,
           answerRoute[1]!,
-          answerRoute[2]!,
+          Number(answerRoute[2]) as 1 | 2 | 3,
+          answerRoute[3]!,
           parsed.data.answer,
         );
         response.writeHead(204).end();
@@ -348,6 +349,7 @@ function handleError(response: ServerResponse, error: unknown) {
   if (error instanceof AssessmentRepositoryError) {
     const conflictCodes = new Set([
       'assessment_not_answering',
+      'round_mismatch',
       'round_incomplete',
       'answer_data_incomplete',
     ]);
