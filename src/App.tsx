@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
+import '@/features/vocabulary/styles.css';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { Layout } from '@/components/layout/Layout';
 import { AssessmentProvider } from '@/features/assessment';
@@ -10,6 +11,9 @@ import { Home } from '@/pages/Home';
 import { Persona } from '@/pages/Persona';
 import { Reports } from '@/pages/Reports';
 import { ReportDetail } from '@/pages/ReportDetail';
+import { Study } from '@/pages/Study';
+import { Vocabulary } from '@/pages/Vocabulary';
+import { VocabularySetup } from '@/pages/VocabularySetup';
 
 export default function App() {
   return (
@@ -44,6 +48,30 @@ export default function App() {
                       </RequireAuth>
                     }
                     path="/assessment"
+                  />
+                  <Route
+                    element={
+                      <RequireAuth>
+                        <Study />
+                      </RequireAuth>
+                    }
+                    path="/study"
+                  />
+                  <Route
+                    element={
+                      <RequireAuth>
+                        <Vocabulary />
+                      </RequireAuth>
+                    }
+                    path="/study/vocabulary"
+                  />
+                  <Route
+                    element={
+                      <RequireAuth>
+                        <VocabularySetup />
+                      </RequireAuth>
+                    }
+                    path="/study/vocabulary/:activity/:scope"
                   />
                   <Route
                     element={

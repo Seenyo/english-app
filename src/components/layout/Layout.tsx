@@ -22,7 +22,10 @@ export function Layout({ children }: LayoutProps) {
             <strong>everyday</strong>
           </Link>
           {session && mode === 'dry-run' && <DryRunBanner compact />}
-          <nav className="flex items-center gap-3 text-sm font-bold sm:gap-6">
+          <nav
+            aria-label="メインナビゲーション"
+            className="main-navigation flex items-center gap-3 text-sm font-bold sm:gap-6"
+          >
             {session ? (
               <>
                 <NavLink
@@ -33,6 +36,14 @@ export function Layout({ children }: LayoutProps) {
                   }
                 >
                   ホーム
+                </NavLink>
+                <NavLink
+                  to="/study"
+                  className={({ isActive }) =>
+                    cn('nav-link', isActive && 'nav-link-active')
+                  }
+                >
+                  学習
                 </NavLink>
                 {mode === 'live' && (
                   <>
