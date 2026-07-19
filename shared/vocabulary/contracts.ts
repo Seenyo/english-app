@@ -74,6 +74,41 @@ export const vocabularySessionSchema = z.object({
 });
 export type VocabularySession = z.infer<typeof vocabularySessionSchema>;
 
+export const startVocabularySessionResultSchema = z.discriminatedUnion(
+  'outcome',
+  [
+    z.object({
+      outcome: z.literal('session'),
+      session: vocabularySessionSchema,
+    }),
+    z.object({ outcome: z.literal('completed') }),
+  ],
+);
+export type StartVocabularySessionResult = z.infer<
+  typeof startVocabularySessionResultSchema
+>;
+
+export const vocabularySessionConflictCodes = [
+  'vocabulary_session_not_found',
+  'vocabulary_session_not_resumable',
+  'vocabulary_position_mismatch',
+  'vocabulary_operation_out_of_order',
+  'vocabulary_undo_out_of_order',
+  'undo_target_not_found',
+  'vocabulary_session_incomplete',
+] as const;
+export type VocabularySessionConflictCode =
+  (typeof vocabularySessionConflictCodes)[number];
+
+export function isVocabularySessionConflictCode(
+  value: unknown,
+): value is VocabularySessionConflictCode {
+  return (
+    typeof value === 'string' &&
+    vocabularySessionConflictCodes.some((code) => code === value)
+  );
+}
+
 export const startVocabularySessionRequestSchema = z
   .object({
     kind: vocabularyKindSchema,

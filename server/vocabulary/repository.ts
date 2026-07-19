@@ -1,8 +1,11 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
+  startVocabularySessionResultSchema,
+  vocabularySessionConflictCodes,
   vocabularyOverviewSchema,
   vocabularySessionSchema,
   type StartVocabularySessionRequest,
+  type StartVocabularySessionResult,
   type VocabularyCard,
   type VocabularyKind,
   type VocabularyOperation,
@@ -64,10 +67,15 @@ export class VocabularyRepository {
   async startSession(
     userId: string,
     request: StartVocabularySessionRequest,
-  ): Promise<VocabularySession> {
+  ): Promise<StartVocabularySessionResult> {
     if (request.mode === 'continue') {
       const resumable = await this.findResumableSession(userId, request.kind);
-      if (resumable) return this.loadSession(userId, resumable.id);
+      if (resumable) {
+        return startVocabularySessionResultSchema.parse({
+          outcome: 'session',
+          session: await this.loadSession(userId, resumable.id),
+        });
+      }
     }
     const { data, error } = await this.database.rpc(
       'start_vocabulary_check_session',
@@ -81,7 +89,22 @@ export class VocabularyRepository {
     );
     if (error)
       throw repositoryError('Could not start vocabulary check.', error);
-    return this.loadSession(userId, String(data));
+    const sessionId = String(data);
+    const row = await this.getSessionRow(userId, sessionId);
+    if (!row) {
+      throw new VocabularyRepositoryError(
+        '作成した習熟度チェックを読み込めませんでした。',
+        'vocabulary_session_not_found',
+      );
+    }
+    return startVocabularySessionResultSchema.parse(
+      row.status === 'completed'
+        ? { outcome: 'completed' }
+        : {
+            outcome: 'session',
+            session: await this.loadSession(userId, sessionId),
+          },
+    );
   }
 
   async getResumableSession(
@@ -272,8 +295,33 @@ function repositoryError(
 ) {
   return new VocabularyRepositoryError(
     `${message} ${error.message ?? ''}`.trim(),
-    error.message?.includes('vocabulary_queue_empty')
-      ? 'vocabulary_queue_empty'
-      : (error.code ?? null),
+    resolveVocabularyRepositoryCode(error),
+  );
+}
+
+const vocabularyRepositoryDomainCodes = [
+  ...vocabularySessionConflictCodes,
+  'vocabulary_queue_empty',
+  'invalid_vocabulary_kind',
+  'invalid_vocabulary_mode',
+  'idioms_have_no_sections',
+  'invalid_vocabulary_operations',
+  'invalid_vocabulary_position',
+  'item_not_in_vocabulary_session',
+  'invalid_vocabulary_rating',
+  'invalid_vocabulary_action',
+  'invalid_vocabulary_session_status',
+] as const;
+
+export function resolveVocabularyRepositoryCode(error: {
+  code?: string;
+  message?: string;
+}): string | null {
+  return (
+    vocabularyRepositoryDomainCodes.find((code) =>
+      error.message?.includes(code),
+    ) ??
+    error.code ??
+    null
   );
 }

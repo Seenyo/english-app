@@ -18,6 +18,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { useAuth } from '@/features/auth';
 import {
   cacheVocabularySession,
+  isVocabularySessionConflict,
   readCachedVocabularySession,
   readQueuedVocabularyOperations,
   removeCachedVocabularySession,
@@ -32,6 +33,11 @@ type LastClassification = {
   card: VocabularyCard;
   rating: VocabularyRating;
 };
+
+type FlushResult = 'synced' | 'offline' | 'conflict';
+type SyncState = 'saved' | 'queued' | 'saving' | 'offline' | 'conflict';
+const conflictMessage =
+  '別の画面で進捗が更新されました。端末内の未同期分を確認して、サーバーの進捗から再読み込みしてください。';
 
 export function VocabularyCheckSession() {
   const { scope } = useParams();
@@ -59,12 +65,10 @@ export function VocabularyCheckSession() {
   );
   const [isLoading, setIsLoading] = useState(!initialSession.success);
   const [error, setError] = useState<string | null>(null);
-  const [syncState, setSyncState] = useState<
-    'saved' | 'queued' | 'saving' | 'offline'
-  >('saved');
+  const [syncState, setSyncState] = useState<SyncState>('saved');
   const [lastClassification, setLastClassification] =
     useState<LastClassification | null>(null);
-  const flushPromise = useRef<Promise<boolean> | null>(null);
+  const flushPromise = useRef<Promise<FlushResult> | null>(null);
   const flushTimer = useRef<number | null>(null);
   const sessionRef = useRef(session);
 
@@ -79,8 +83,8 @@ export function VocabularyCheckSession() {
     };
   }, []);
 
-  const flush = useCallback(async (): Promise<boolean> => {
-    if (!user || !sessionRef.current) return true;
+  const flush = useCallback(async (): Promise<FlushResult> => {
+    if (!user || !sessionRef.current) return 'synced';
     if (flushPromise.current) return flushPromise.current;
     const currentSession = sessionRef.current;
     flushPromise.current = (async () => {
@@ -103,10 +107,15 @@ export function VocabularyCheckSession() {
           );
         }
         setSyncState('saved');
-        return true;
-      } catch {
+        return 'synced';
+      } catch (requestError) {
+        if (isVocabularySessionConflict(requestError)) {
+          setSyncState('conflict');
+          setError(conflictMessage);
+          return 'conflict';
+        }
         setSyncState('offline');
-        return false;
+        return 'offline';
       }
     })().finally(() => {
       flushPromise.current = null;
@@ -247,8 +256,8 @@ export function VocabularyCheckSession() {
       );
       if (cancelled || pending.length === 0) return;
       setSyncState('queued');
-      const synced = await flush();
-      if (!synced || cancelled) return;
+      const flushResult = await flush();
+      if (flushResult !== 'synced' || cancelled) return;
       await refresh();
       const recovered = await loadSession(activeSessionId).catch(() => null);
       if (recovered && !cancelled) setSession(recovered);
@@ -344,9 +353,11 @@ export function VocabularyCheckSession() {
   async function continueAfterCheckpoint() {
     if (!session) return;
     setIsLoading(true);
-    const synced = await flush();
-    if (!synced) {
-      setError('次の100件を開くには、一度オンラインに戻る必要があります。');
+    const flushResult = await flush();
+    if (flushResult !== 'synced') {
+      if (flushResult === 'offline') {
+        setError('次の100件を開くには、一度オンラインに戻る必要があります。');
+      }
       setIsLoading(false);
       return;
     }
@@ -357,11 +368,16 @@ export function VocabularyCheckSession() {
       setLastClassification(null);
       setError(null);
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : '次のカードを読み込めませんでした。',
-      );
+      if (isVocabularySessionConflict(requestError)) {
+        setSyncState('conflict');
+        setError(conflictMessage);
+      } else {
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : '次のカードを読み込めませんでした。',
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -372,8 +388,8 @@ export function VocabularyCheckSession() {
     navigate('/study/vocabulary', { replace: true });
     if (!current || !user) return;
     void (async () => {
-      const synced = await flush();
-      if (synced) {
+      const flushResult = await flush();
+      if (flushResult === 'synced') {
         await finishSession(current.id, 'paused', current.position).catch(
           () => undefined,
         );
@@ -385,19 +401,70 @@ export function VocabularyCheckSession() {
     const current = sessionRef.current;
     if (!current || !user) return;
     setIsLoading(true);
-    const synced = await flush();
+    const flushResult = await flush();
     const completed = current.position >= current.total;
-    if (synced) {
+    if (flushResult !== 'synced') {
+      if (flushResult === 'offline') {
+        setError(
+          '進捗をサーバーへ保存できませんでした。接続を確認して、もう一度お試しください。',
+        );
+      }
+      setIsLoading(false);
+      return;
+    }
+    try {
       await finishSession(
         current.id,
         completed ? 'completed' : 'paused',
         current.position,
-      ).catch(() => undefined);
+      );
       if (completed) {
         await removeCachedVocabularySession(user.id, current.kind);
       }
+      navigate('/', { replace: true });
+    } catch (requestError) {
+      if (isVocabularySessionConflict(requestError)) {
+        setSyncState('conflict');
+        setError(conflictMessage);
+      } else {
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : 'チェックを終了できませんでした。もう一度お試しください。',
+        );
+      }
+      setIsLoading(false);
     }
-    navigate('/', { replace: true });
+  }
+
+  async function recoverFromConflict() {
+    const current = sessionRef.current;
+    if (!current || !user || !kind) return;
+    setIsLoading(true);
+    try {
+      const remote = await resumeSession(kind);
+      const pending = await readQueuedVocabularyOperations(user.id, current.id);
+      await removeQueuedVocabularyOperations(pending.map((entry) => entry.id));
+      if (!remote) {
+        await removeCachedVocabularySession(user.id, kind);
+        navigate('/study/vocabulary', { replace: true });
+        return;
+      }
+      await cacheVocabularySession(user.id, remote);
+      setSession(remote);
+      setLastClassification(null);
+      setSyncState('saved');
+      setError(null);
+      await refresh();
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'サーバーの進捗を読み込めませんでした。',
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   if (!kind) return <Navigate replace to="/study/vocabulary" />;
@@ -440,12 +507,14 @@ export function VocabularyCheckSession() {
                 ? '端末に保存済み'
                 : syncState === 'saving'
                   ? '保存中…'
-                  : 'オフライン保存済み'}
+                  : syncState === 'offline'
+                    ? 'オフライン保存済み'
+                    : '同期の確認が必要'}
           </span>
         </div>
         <button
           aria-label="最後の分類を元に戻す"
-          disabled={!lastClassification}
+          disabled={!lastClassification || syncState === 'conflict'}
           onClick={undo}
           type="button"
         >
@@ -461,7 +530,20 @@ export function VocabularyCheckSession() {
         />
       </div>
 
-      {error && <div className="swipe-session-error">{error}</div>}
+      {error && (
+        <div className="swipe-session-error">
+          <span>{error}</span>
+          {syncState === 'conflict' && (
+            <button
+              disabled={isLoading}
+              onClick={() => void recoverFromConflict()}
+              type="button"
+            >
+              端末の未同期分を破棄して再読み込み
+            </button>
+          )}
+        </div>
+      )}
       {atCheckpoint ? (
         <CheckpointSummary
           atEnd={atEnd}
@@ -486,6 +568,7 @@ export function VocabularyCheckSession() {
           </div>
           <SwipeVocabularyCard
             card={currentCard}
+            disabled={isLoading || syncState === 'conflict'}
             key={currentCard.id}
             onClassify={classify}
           />
@@ -541,6 +624,7 @@ function CheckpointSummary({
         )}
         <button
           className="checkpoint-finish"
+          disabled={isLoading}
           onClick={onComplete}
           type="button"
         >

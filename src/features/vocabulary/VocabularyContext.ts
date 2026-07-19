@@ -1,6 +1,7 @@
 import { createContext } from 'react';
 import type {
   StartVocabularySessionRequest,
+  StartVocabularySessionResult,
   VocabularyKind,
   VocabularyOperation,
   VocabularyOverview,
@@ -14,7 +15,7 @@ export type VocabularyContextValue = {
   refresh: () => Promise<void>;
   startSession: (
     request: StartVocabularySessionRequest,
-  ) => Promise<VocabularySession>;
+  ) => Promise<StartVocabularySessionResult>;
   resumeSession: (kind: VocabularyKind) => Promise<VocabularySession | null>;
   loadSession: (sessionId: string) => Promise<VocabularySession>;
   saveOperations: (

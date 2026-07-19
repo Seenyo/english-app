@@ -99,12 +99,17 @@ export function VocabularyCheckSetup() {
       setIsStarting(true);
       setError(null);
       try {
-        const session = await startSession({
+        const result = await startSession({
           kind: sessionKind,
           mode: sessionMode,
           skippedSections: sections,
           recheckRatings: ratings,
         });
+        if (result.outcome === 'completed') {
+          navigate('/', { replace: true });
+          return;
+        }
+        const session = result.session;
         await cacheVocabularySession(user.id, session);
         navigate(`/study/vocabulary/check/${scope}/session`, {
           replace: sessionMode === 'continue',

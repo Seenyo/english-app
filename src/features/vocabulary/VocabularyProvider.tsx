@@ -11,6 +11,7 @@ import type {
   VocabularyOverview,
 } from '@shared/vocabulary/contracts';
 import { useAuth } from '@/features/auth';
+import { useLearning } from '@/features/learning';
 import {
   finishVocabularySession,
   getResumableVocabularySession,
@@ -26,6 +27,7 @@ import {
 
 export function VocabularyProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
+  const { refresh: refreshLearning } = useLearning();
   const sessionRef = useRef(session);
   const loadedUserId = useRef<string | null>(null);
   const [overview, setOverview] = useState<VocabularyOverview | null>(null);
@@ -80,7 +82,8 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
           current.access_token,
           request,
         );
-        void refresh();
+        await refresh();
+        if (result.outcome === 'completed') await refreshLearning(false);
         return result;
       },
       async resumeSession(kind) {
@@ -108,10 +111,10 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
           status,
           position,
         );
-        await refresh();
+        await Promise.all([refresh(), refreshLearning(false)]);
       },
     }),
-    [error, isLoading, overview, refresh],
+    [error, isLoading, overview, refresh, refreshLearning],
   );
 
   return (

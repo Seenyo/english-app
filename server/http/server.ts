@@ -10,6 +10,7 @@ import {
 import { updatePersonaRequestSchema } from '../../shared/learning/contracts.ts';
 import {
   finishVocabularySessionRequestSchema,
+  isVocabularySessionConflictCode,
   saveVocabularyOperationsRequestSchema,
   startVocabularySessionRequestSchema,
   vocabularyKindSchema,
@@ -380,11 +381,26 @@ function handleError(response: ServerResponse, error: unknown) {
   }
 
   if (error instanceof VocabularyRepositoryError) {
+    const invalidCodes = new Set([
+      'invalid_vocabulary_kind',
+      'invalid_vocabulary_mode',
+      'idioms_have_no_sections',
+      'invalid_vocabulary_operations',
+      'invalid_vocabulary_position',
+      'item_not_in_vocabulary_session',
+      'invalid_vocabulary_rating',
+      'invalid_vocabulary_action',
+      'invalid_vocabulary_session_status',
+    ]);
     const status =
       error.code === 'vocabulary_session_not_found' ||
       error.code === 'vocabulary_queue_empty'
         ? 404
-        : 500;
+        : isVocabularySessionConflictCode(error.code)
+          ? 409
+          : invalidCodes.has(error.code ?? '')
+            ? 400
+            : 500;
     sendJson(response, status, {
       error: {
         code: error.code ?? 'vocabulary_data_error',

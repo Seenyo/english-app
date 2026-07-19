@@ -1,10 +1,13 @@
 import {
+  isVocabularySessionConflictCode,
+  startVocabularySessionResultSchema,
   vocabularyOverviewSchema,
   vocabularySessionSchema,
   type StartVocabularySessionRequest,
   type VocabularyKind,
   type VocabularyOperation,
   type VocabularyOverview,
+  type StartVocabularySessionResult,
   type VocabularySession,
 } from '@shared/vocabulary/contracts';
 import { aiBridgeUrl } from '@/config/env';
@@ -22,11 +25,11 @@ export function getVocabularyOverview(
 export function startVocabularySession(
   token: string,
   request: StartVocabularySessionRequest,
-): Promise<VocabularySession> {
+): Promise<StartVocabularySessionResult> {
   return requestJson(
     token,
     '/v1/vocabulary/sessions',
-    vocabularySessionSchema.parse,
+    startVocabularySessionResultSchema.parse,
     { method: 'POST', body: request },
   );
 }
@@ -94,6 +97,25 @@ type RequestOptions = {
   body?: unknown;
 };
 
+export class VocabularyApiError extends Error {
+  constructor(
+    message: string,
+    readonly code: string,
+    readonly retryable: boolean,
+    readonly status: number | null,
+  ) {
+    super(message);
+    this.name = 'VocabularyApiError';
+  }
+}
+
+export function isVocabularySessionConflict(error: unknown): boolean {
+  return (
+    error instanceof VocabularyApiError &&
+    (error.status === 409 || isVocabularySessionConflictCode(error.code))
+  );
+}
+
 async function request(
   token: string,
   path: string,
@@ -114,19 +136,23 @@ async function request(
         : { body: JSON.stringify(options.body) }),
     });
   } catch {
-    throw new Error(
+    throw new VocabularyApiError(
       '学習サーバーに接続できません。操作は端末内に保持されています。',
+      'network_error',
+      true,
+      null,
     );
   }
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
-      error?: { code?: string; message?: string };
+      error?: { code?: string; message?: string; retryable?: boolean };
     } | null;
-    const error = new Error(
+    throw new VocabularyApiError(
       body?.error?.message ?? `Request failed (${response.status}).`,
+      body?.error?.code ?? 'request_failed',
+      body?.error?.retryable ?? response.status >= 500,
+      response.status,
     );
-    Object.assign(error, { code: body?.error?.code });
-    throw error;
   }
   return response;
 }
