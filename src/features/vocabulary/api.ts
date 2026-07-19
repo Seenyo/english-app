@@ -1,5 +1,4 @@
 import {
-  isVocabularySessionConflictCode,
   startVocabularySessionResultSchema,
   vocabularyOverviewSchema,
   vocabularySessionSchema,
@@ -11,6 +10,7 @@ import {
   type VocabularySession,
 } from '@shared/vocabulary/contracts';
 import { aiBridgeUrl } from '@/config/env';
+import { VocabularyApiError } from './errors';
 
 export function getVocabularyOverview(
   token: string,
@@ -96,25 +96,6 @@ type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT';
   body?: unknown;
 };
-
-export class VocabularyApiError extends Error {
-  constructor(
-    message: string,
-    readonly code: string,
-    readonly retryable: boolean,
-    readonly status: number | null,
-  ) {
-    super(message);
-    this.name = 'VocabularyApiError';
-  }
-}
-
-export function isVocabularySessionConflict(error: unknown): boolean {
-  return (
-    error instanceof VocabularyApiError &&
-    (error.status === 409 || isVocabularySessionConflictCode(error.code))
-  );
-}
 
 async function request(
   token: string,

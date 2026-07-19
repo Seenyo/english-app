@@ -18,11 +18,11 @@ import { Spinner } from '@/components/ui/Spinner';
 import { useAuth } from '@/features/auth';
 import {
   cacheVocabularySession,
-  isVocabularySessionConflict,
   readCachedVocabularySession,
   readQueuedVocabularyOperations,
   removeCachedVocabularySession,
   removeQueuedVocabularyOperations,
+  requiresVocabularySessionRecovery,
   queueVocabularyProgress,
   useVocabulary,
 } from '@/features/vocabulary';
@@ -34,10 +34,10 @@ type LastClassification = {
   rating: VocabularyRating;
 };
 
-type FlushResult = 'synced' | 'offline' | 'conflict';
-type SyncState = 'saved' | 'queued' | 'saving' | 'offline' | 'conflict';
-const conflictMessage =
-  '別の画面で進捗が更新されました。端末内の未同期分を確認して、サーバーの進捗から再読み込みしてください。';
+type FlushResult = 'synced' | 'offline' | 'recovery';
+type SyncState = 'saved' | 'queued' | 'saving' | 'offline' | 'recovery';
+const recoveryMessage =
+  '進捗をそのまま同期できませんでした。端末内の未同期分を確認して、サーバーの進捗から再読み込みしてください。';
 
 export function VocabularyCheckSession() {
   const { scope } = useParams();
@@ -109,10 +109,10 @@ export function VocabularyCheckSession() {
         setSyncState('saved');
         return 'synced';
       } catch (requestError) {
-        if (isVocabularySessionConflict(requestError)) {
-          setSyncState('conflict');
-          setError(conflictMessage);
-          return 'conflict';
+        if (requiresVocabularySessionRecovery(requestError)) {
+          setSyncState('recovery');
+          setError(recoveryMessage);
+          return 'recovery';
         }
         setSyncState('offline');
         return 'offline';
@@ -368,9 +368,9 @@ export function VocabularyCheckSession() {
       setLastClassification(null);
       setError(null);
     } catch (requestError) {
-      if (isVocabularySessionConflict(requestError)) {
-        setSyncState('conflict');
-        setError(conflictMessage);
+      if (requiresVocabularySessionRecovery(requestError)) {
+        setSyncState('recovery');
+        setError(recoveryMessage);
       } else {
         setError(
           requestError instanceof Error
@@ -423,9 +423,9 @@ export function VocabularyCheckSession() {
       }
       navigate('/', { replace: true });
     } catch (requestError) {
-      if (isVocabularySessionConflict(requestError)) {
-        setSyncState('conflict');
-        setError(conflictMessage);
+      if (requiresVocabularySessionRecovery(requestError)) {
+        setSyncState('recovery');
+        setError(recoveryMessage);
       } else {
         setError(
           requestError instanceof Error
@@ -437,7 +437,7 @@ export function VocabularyCheckSession() {
     }
   }
 
-  async function recoverFromConflict() {
+  async function recoverSession() {
     const current = sessionRef.current;
     if (!current || !user || !kind) return;
     setIsLoading(true);
@@ -514,7 +514,7 @@ export function VocabularyCheckSession() {
         </div>
         <button
           aria-label="最後の分類を元に戻す"
-          disabled={!lastClassification || syncState === 'conflict'}
+          disabled={!lastClassification || syncState === 'recovery'}
           onClick={undo}
           type="button"
         >
@@ -533,10 +533,10 @@ export function VocabularyCheckSession() {
       {error && (
         <div className="swipe-session-error">
           <span>{error}</span>
-          {syncState === 'conflict' && (
+          {syncState === 'recovery' && (
             <button
               disabled={isLoading}
-              onClick={() => void recoverFromConflict()}
+              onClick={() => void recoverSession()}
               type="button"
             >
               端末の未同期分を破棄して再読み込み
@@ -568,7 +568,7 @@ export function VocabularyCheckSession() {
           </div>
           <SwipeVocabularyCard
             card={currentCard}
-            disabled={isLoading || syncState === 'conflict'}
+            disabled={isLoading || syncState === 'recovery'}
             key={currentCard.id}
             onClassify={classify}
           />

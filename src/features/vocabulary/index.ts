@@ -11,7 +11,11 @@ export type {
 } from './catalog';
 export { VocabularyProvider } from './VocabularyProvider';
 export { useVocabulary } from './useVocabulary';
-export { isVocabularySessionConflict, VocabularyApiError } from './api';
+export {
+  isVocabularySessionConflict,
+  requiresVocabularySessionRecovery,
+  VocabularyApiError,
+} from './errors';
 export {
   cacheVocabularySession,
   queueVocabularyProgress,

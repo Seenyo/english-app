@@ -212,27 +212,6 @@ begin
   ) candidate;
 
   if cardinality(v_item_ids) = 0 then
-    if p_kind = 'word'
-       and p_mode = 'restart'
-       and cardinality(p_skipped_sections) > 0 then
-      select coalesce(array_agg(id order by source_order), '{}'::bigint[])
-      into v_item_ids
-      from vocabulary_items
-      where owner_user_id is null
-        and kind = 'word'
-        and section = any(p_skipped_sections);
-
-      if cardinality(v_item_ids) > 0 then
-        insert into vocabulary_check_sessions (
-          id, user_id, kind, mode, status, item_ids,
-          current_index, completed_at
-        ) values (
-          v_session_id, p_user_id, p_kind, p_mode, 'completed', v_item_ids,
-          cardinality(v_item_ids), now()
-        );
-        return v_session_id;
-      end if;
-    end if;
     raise exception using errcode = 'P0002', message = 'vocabulary_queue_empty';
   end if;
 
