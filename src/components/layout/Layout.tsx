@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router';
+import { NavigationIcon } from '@/components/ui/NavigationIcon';
 import { useAssessment } from '@/features/assessment';
 import { DryRunBanner } from '@/features/assessment/components/DryRunBanner';
 import { useAuth, UserMenu } from '@/features/auth';
@@ -31,45 +32,38 @@ export function Layout({ children }: LayoutProps) {
                 <NavLink
                   to="/"
                   end
+                  aria-label="ホーム"
+                  data-tooltip="ホーム"
                   className={({ isActive }) =>
-                    cn('nav-link', isActive && 'nav-link-active')
+                    cn('nav-icon-link', isActive && 'nav-icon-active')
                   }
                 >
-                  ホーム
+                  <NavigationIcon name="home" />
+                  <span className="sr-only">ホーム</span>
                 </NavLink>
                 <NavLink
                   to="/study"
+                  aria-label="学習"
+                  data-tooltip="学習"
                   className={({ isActive }) =>
-                    cn('nav-link', isActive && 'nav-link-active')
+                    cn('nav-icon-link', isActive && 'nav-icon-active')
                   }
                 >
-                  学習
+                  <NavigationIcon name="study" />
+                  <span className="sr-only">学習</span>
                 </NavLink>
                 {mode === 'live' && (
-                  <>
-                    <NavLink
-                      to="/persona"
-                      className={({ isActive }) =>
-                        cn(
-                          'nav-link nav-link-secondary',
-                          isActive && 'nav-link-active',
-                        )
-                      }
-                    >
-                      プロフィール
-                    </NavLink>
-                    <NavLink
-                      to="/reports"
-                      className={({ isActive }) =>
-                        cn(
-                          'nav-link nav-link-secondary',
-                          isActive && 'nav-link-active',
-                        )
-                      }
-                    >
-                      フィードバック
-                    </NavLink>
-                  </>
+                  <NavLink
+                    to="/persona"
+                    aria-label="プロフィール"
+                    data-tooltip="プロフィール"
+                    className={({ isActive }) =>
+                      cn('nav-icon-link', isActive && 'nav-icon-active')
+                    }
+                  >
+                    <NavigationIcon name="profile" />
+                    <span className="sr-only">プロフィール</span>
+                  </NavLink>
                 )}
                 <UserMenu />
               </>

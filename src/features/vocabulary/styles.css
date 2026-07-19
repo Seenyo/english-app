@@ -687,14 +687,6 @@
 }
 
 @media (max-width: 639px) {
-  .main-navigation {
-    gap: 0.65rem;
-  }
-
-  .main-navigation .nav-link {
-    font-size: 0.72rem;
-  }
-
   .study-header,
   .vocabulary-header {
     text-align: center;

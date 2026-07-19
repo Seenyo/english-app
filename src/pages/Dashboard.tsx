@@ -1,6 +1,7 @@
 import { Navigate, Link } from 'react-router';
 import type { AssessmentState } from '@shared/assessment/contracts';
 import { Spinner } from '@/components/ui/Spinner';
+import { NavigationIcon } from '@/components/ui/NavigationIcon';
 import { useAssessment } from '@/features/assessment';
 import { useAuth } from '@/features/auth';
 import { useLearning } from '@/features/learning';
@@ -129,12 +130,25 @@ export function Dashboard() {
         </div>
       </section>
 
-      <AnalysisCard
-        error={learningError}
-        isRetrying={isRetryingAnalysis}
-        overview={overview}
-        onRetry={() => void retryAnalysis().catch(() => undefined)}
-      />
+      <section className="home-feedback-section">
+        <div className="home-feedback-heading">
+          <div>
+            <p className="eyebrow">Your learning record</p>
+            <h2>フィードバック</h2>
+          </div>
+          <Link className="feedback-archive-link" to="/reports">
+            <NavigationIcon name="feedback" />
+            <span>これまでの記録</span>
+            <b aria-hidden="true">→</b>
+          </Link>
+        </div>
+        <AnalysisCard
+          error={learningError}
+          isRetrying={isRetryingAnalysis}
+          overview={overview}
+          onRetry={() => void retryAnalysis().catch(() => undefined)}
+        />
+      </section>
 
       <section>
         <div className="mb-4 flex items-end justify-between gap-4">

@@ -92,15 +92,115 @@ label {
   letter-spacing: -0.025em;
 }
 
-.nav-link {
-  color: #487d81;
-  text-decoration: none;
-  transition: color 150ms ease;
+.main-navigation {
+  gap: 0.65rem;
 }
 
-.nav-link:hover,
-.nav-link-active {
+.nav-icon-link,
+.nav-icon-button {
+  position: relative;
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  flex: 0 0 auto;
+  cursor: pointer;
+  place-items: center;
+  box-sizing: border-box;
+  border: 2px solid transparent;
+  border-radius: 0.9rem;
+  background: transparent;
+  color: #487d81;
+  text-decoration: none;
+  transition:
+    color 120ms ease,
+    background 120ms ease,
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.nav-icon-link svg,
+.nav-icon-button svg,
+.feedback-archive-link svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.1;
+}
+
+.nav-icon-link:hover,
+.nav-icon-button:hover {
+  background: #e4f7fa;
   color: #173a3f;
+  transform: translateY(-1px);
+}
+
+.nav-icon-link:focus-visible,
+.nav-icon-button:focus-visible {
+  outline: 3px solid #ff6b5f;
+  outline-offset: 3px;
+}
+
+.nav-icon-active {
+  border-color: #173a3f;
+  background: #ffdf72;
+  color: #173a3f;
+  box-shadow: 2px 2px 0 #173a3f;
+}
+
+.nav-icon-active:hover {
+  background: #ffdf72;
+}
+
+.nav-icon-logout {
+  color: #be4038;
+}
+
+.nav-icon-logout:hover {
+  background: #ffc9c3;
+  color: #7d2924;
+}
+
+.header-user-menu {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-icon-link::after,
+.nav-icon-button::after {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  left: 50%;
+  z-index: 50;
+  width: max-content;
+  max-width: 8rem;
+  border: 2px solid #173a3f;
+  border-radius: 0.6rem;
+  background: #173a3f;
+  padding: 0.28rem 0.5rem;
+  color: white;
+  content: attr(data-tooltip);
+  font-size: 0.65rem;
+  font-weight: 900;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -0.25rem);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .nav-icon-link:hover::after,
+  .nav-icon-button:hover::after,
+  .nav-icon-link:focus-visible::after,
+  .nav-icon-button:focus-visible::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 .header-login-button {
@@ -120,13 +220,6 @@ label {
 .header-login-button:hover {
   transform: translateY(-1px);
   box-shadow: 3px 3px 0 #173a3f;
-}
-
-.nav-link-active {
-  text-decoration: underline;
-  text-decoration-color: #ff6b5f;
-  text-decoration-thickness: 3px;
-  text-underline-offset: 6px;
 }
 
 .eyebrow {
@@ -1119,6 +1212,60 @@ label {
 }
 
 /* Learning passport and assessment workbook */
+.home-feedback-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.home-feedback-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.home-feedback-heading h2 {
+  margin: 0.35rem 0 0;
+  color: #173a3f;
+  font-size: clamp(1.55rem, 4vw, 2.2rem);
+  font-weight: 900;
+  letter-spacing: -0.035em;
+}
+
+.feedback-archive-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 2px solid #173a3f;
+  border-radius: 0.9rem;
+  background: white;
+  padding: 0.55rem 0.75rem;
+  color: #173a3f;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-decoration: none;
+  box-shadow: 2px 2px 0 #173a3f;
+  transition:
+    transform 120ms ease,
+    background 120ms ease;
+}
+
+.feedback-archive-link:hover {
+  background: #e4f7fa;
+  transform: translateY(-1px);
+}
+
+.feedback-archive-link:focus-visible {
+  outline: 3px solid #ff6b5f;
+  outline-offset: 3px;
+}
+
+.feedback-archive-link svg {
+  width: 1rem;
+  height: 1rem;
+}
+
 .analysis-status-card {
   display: grid;
   align-items: center;
@@ -1625,8 +1772,21 @@ label {
 }
 
 @media (max-width: 639px) {
-  .nav-link-secondary {
-    font-size: 0.72rem;
+  .main-navigation {
+    gap: 0.35rem;
+  }
+
+  .nav-icon-link,
+  .nav-icon-button {
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 0.78rem;
+  }
+
+  .nav-icon-link svg,
+  .nav-icon-button svg {
+    width: 1.2rem;
+    height: 1.2rem;
   }
   .persona-passport-hero,
   .report-cover {
