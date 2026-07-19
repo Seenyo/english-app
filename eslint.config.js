@@ -30,7 +30,14 @@ export default tseslint.config(
     },
   },
   {
-    files: ['vite.config.ts', 'scripts/**/*.mjs', 'eslint.config.js'],
+    files: [
+      'vite.config.ts',
+      'scripts/**/*.mjs',
+      'server/**/*.mjs',
+      'server/**/*.ts',
+      'shared/**/*.ts',
+      'eslint.config.js',
+    ],
     languageOptions: { globals: globals.node, sourceType: 'module' },
   },
   prettier,

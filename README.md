@@ -1,47 +1,97 @@
-# English Study
+# everyday — personal English study
 
-A minimal scaffold proving the end-to-end plumbing — **no study features yet**.
+A private, adaptive English-learning web app. Google accounts represent the
+owner's test personas; Codex generates placement questions through the owner's
+ChatGPT Plus/Pro login. No OpenAI API key is used.
 
-| Concern  | Stack                                                                  |
-| -------- | ---------------------------------------------------------------------- |
-| UI       | React 19                                                               |
-| Build    | Vite 8 (Rolldown)                                                      |
-| Routing  | React Router v8 (declarative)                                          |
-| Styling  | Tailwind CSS v4 (`@tailwindcss/vite`)                                  |
-| Language | TypeScript 6 (strict)                                                  |
-| Backend  | Supabase — Google OAuth (PKCE) + per-user `notes` (Row Level Security) |
-| Deploy   | GitHub Pages via GitHub Actions                                        |
+## What is implemented
 
-## Develop
+- Google OAuth with Supabase
+- Owner-only Google account allowlist on the local AI bridge
+- Three-round adaptive placement test: 10 + 10 + 5 questions
+- Vocabulary, idiom, and grammar sentence-completion questions
+- Four choices plus “I don't know”; selection is saved immediately
+- Codex SDK thread resume between rounds
+- JSON Schema output plus domain validation
+- Automatic same-thread repair when Codex output cannot be parsed
+- Server-only answer keys and deterministic scoring
+- Per-persona data persistence and RLS in Supabase
+- Responsive, keyboard-accessible React UI
+- GitHub Pages deployment for the static frontend
+- Local-only dry-run mode with fixed questions and isolated results
+- Asynchronous post-assessment analysis in the same Codex thread
+- One versioned learner persona with user-editable goals and AI/system-owned fields
+- Immutable Japanese feedback reports with all 25 answers
+- Four-way vocabulary/idiom mastery check with touch-first swipe cards
+- Offline-first, batched progress saving with one-step undo and 100-card checkpoints
+- Target 1900 sections, self-reported section skipping, and category-based rechecks
 
-```bash
-npm install
-cp .env.example .env   # add your Supabase URL + anon key (see SETUP.md)
-npm run dev            # http://localhost:5173
+## Architecture
+
+```text
+GitHub Pages / Vite dev server
+        │ Supabase access token
+        ▼
+Personal AI bridge (127.0.0.1:8787)
+        ├── Supabase: attempts, answers, persona versions, reports, jobs
+        └── Codex SDK: one resumable thread per learning feature
 ```
 
-The app runs even without credentials — it shows a "configure Supabase" state
-until keys are added.
+The AI bridge inherits only Codex's login-related process environment. Supabase
+secrets are deliberately removed before the Codex child process starts. Codex
+runs with `--ignore-user-config` from an isolated temporary working directory,
+so user-configured MCP servers and project settings are not available to
+assessment prompts.
 
-## Build
+## Run locally
+
+Complete [`SETUP.md`](./SETUP.md), then use two terminals:
 
 ```bash
-npm run build          # tsc -b (type-check) + vite build + 404.html fallback
-npm run typecheck      # tsc -b only
+npm run dev
+npm run dev:ai
 ```
 
-Output is a fully static `dist/`.
+Open <http://localhost:5173>. The AI bridge binds only to `127.0.0.1`.
 
-## Deploy
+To run the fixed-question debug flow, start the bridge with:
 
-Pushing to `main` triggers the **Deploy** workflow, which builds and publishes to
-GitHub Pages at <https://seenyo.github.io/english-app/>.
+```bash
+npm run dev:ai:dry-run
+```
 
-The first deploy renders a "configure Supabase" placeholder. Complete
-**`SETUP.md`** (Supabase project, Google OAuth client, RLS SQL, repo secrets),
-then re-run the workflow.
+The bridge is exclusively live or dry-run until restarted. There is no mode
+switch in the browser.
 
-## Docs
+## Quality checks
 
-- [`PLAN.md`](./PLAN.md) — full design (stack, schema + RLS contract, CI).
-- [`SETUP.md`](./SETUP.md) — step-by-step cloud setup.
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run ai:smoke  # consumes one Codex turn; prints metadata only
+```
+
+The deploy workflow runs lint, type checking, tests, and the production build
+before GitHub Pages deployment.
+
+## Important paths
+
+- [`shared/assessment/contracts.ts`](./shared/assessment/contracts.ts) — shared request/state contracts
+- [`server/assessment/generator.ts`](./server/assessment/generator.ts) — Codex generation and repair loop
+- [`server/assessment/repository.ts`](./server/assessment/repository.ts) — server-only persistence
+- [`supabase/migrations/20260715053827_create_notes_table_with_rls.sql`](./supabase/migrations/20260715053827_create_notes_table_with_rls.sql) — restored migration baseline for per-user notes
+- [`supabase/migrations/202607180001_assessment.sql`](./supabase/migrations/202607180001_assessment.sql) — schema and access policy
+- [`supabase/migrations/202607180002_dry_run.sql`](./supabase/migrations/202607180002_dry_run.sql) — isolated dry-run schema
+- [`supabase/migrations/202607180003_learning_documents.sql`](./supabase/migrations/202607180003_learning_documents.sql) — Persona, reports, agent threads, and analysis jobs
+- [`supabase/migrations/202607180004_atomic_persona_bootstrap.sql`](./supabase/migrations/202607180004_atomic_persona_bootstrap.sql) — atomic Persona creation and revision repair
+- [`src/features/assessment`](./src/features/assessment) — browser state and assessment UI
+- [`server/learning`](./server/learning) — post-assessment analysis, job processing, and document persistence
+- [`src/features/learning`](./src/features/learning) — Persona and feedback browser state
+- [`supabase/migrations/202607190001_vocabulary_check.sql`](./supabase/migrations/202607190001_vocabulary_check.sql) — vocabulary masters, progress, history, and resumable sessions
+- [`supabase/migrations/20260719071503_fix_vocabulary_session_completion_outcomes.sql`](./supabase/migrations/20260719071503_fix_vocabulary_session_completion_outcomes.sql) — completed outcome for all-skipped vocabulary sessions
+- [`supabase/migrations/20260719090126_index_vocabulary_session_counts.sql`](./supabase/migrations/20260719090126_index_vocabulary_session_counts.sql) — indexed session summary counts
+- [`supabase/migrations/20260719130040_save_assessment_answers_atomically.sql`](./supabase/migrations/20260719130040_save_assessment_answers_atomically.sql) — stale-round-safe live and dry-run answer writes
+- [`server/vocabulary`](./server/vocabulary) — server-only vocabulary repository and source parsers
+- [`src/features/vocabulary`](./src/features/vocabulary) — setup, offline queue, swipe interaction, and progress UI

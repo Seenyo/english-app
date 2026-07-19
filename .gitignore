@@ -9,10 +9,15 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+.env.server
 
 # misc
 *.local
 .DS_Store
 *.log
+.ai-runtime
+.codex/
+words-1900.pdf
+idioms.tsv
 .vscode/*
 !.vscode/extensions.json
