@@ -131,7 +131,7 @@ export class LearningRepository {
     if (error) {
       if (error.message.includes('persona_version_conflict')) {
         throw new LearningRepositoryError(
-          'Personaが別の処理で更新されました。最新内容を読み込んでからもう一度保存してください。',
+          'プロフィールが別の処理で更新されました。最新内容を読み込んでからもう一度保存してください。',
           'persona_version_conflict',
         );
       }
@@ -542,17 +542,6 @@ export class LearningRepository {
       .single();
     if (error) throw repositoryError('Feedback report was not found.', error);
     return assessmentReportSchema.parse(data.report_payload);
-  }
-
-  async getReportMarkdown(userId: string, reportId: string): Promise<string> {
-    const { data, error } = await this.database
-      .from('assessment_reports')
-      .select('report_markdown')
-      .eq('id', reportId)
-      .eq('user_id', userId)
-      .single();
-    if (error) throw repositoryError('Feedback report was not found.', error);
-    return data.report_markdown as string;
   }
 
   private async findReadyJob(now: string): Promise<AnalysisJobRow | null> {

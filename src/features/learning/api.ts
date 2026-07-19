@@ -57,17 +57,6 @@ export function getAssessmentReport(
   );
 }
 
-export async function getAssessmentReportMarkdown(
-  token: string,
-  reportId: string,
-): Promise<string> {
-  const response = await request(
-    token,
-    `/v1/assessment-reports/${encodeURIComponent(reportId)}/markdown`,
-  );
-  return response.text();
-}
-
 export async function retryLatestAnalysis(token: string): Promise<void> {
   await request(token, '/v1/assessment-reports/retry-latest', {
     method: 'POST',

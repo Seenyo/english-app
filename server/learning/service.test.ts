@@ -26,7 +26,7 @@ test('dry-run learning endpoints never touch persistence or Codex', async () => 
   assert.deepEqual(await service.getOverview(user), {
     mode: 'dry-run',
     analysisStatus: 'unavailable',
-    analysisMessage: 'Dry-runではCodex分析とPersona更新を行いません。',
+    analysisMessage: 'Dry-runではCodex分析とプロフィール更新を行いません。',
     persona: null,
     latestReport: null,
   });

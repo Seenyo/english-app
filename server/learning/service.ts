@@ -59,7 +59,7 @@ export class LearningService {
       return learningOverviewSchema.parse({
         mode: 'dry-run',
         analysisStatus: 'unavailable',
-        analysisMessage: 'Dry-runではCodex分析とPersona更新を行いません。',
+        analysisMessage: 'Dry-runではCodex分析とプロフィール更新を行いません。',
         persona: null,
         latestReport: null,
       });
@@ -90,7 +90,7 @@ export class LearningService {
   ): Promise<LearnerPersona> {
     if (this.config.assessmentMode === 'dry-run') {
       throw new LearningRepositoryError(
-        'Dry-runではPersonaを保存しません。',
+        'Dry-runではプロフィールを保存しません。',
         'dry_run_unavailable',
       );
     }
@@ -114,16 +114,6 @@ export class LearningService {
       );
     }
     return this.repository.getReport(user.id, reportId);
-  }
-
-  async getReportMarkdown(user: User, reportId: string): Promise<string> {
-    if (this.config.assessmentMode === 'dry-run') {
-      throw new LearningRepositoryError(
-        'Dry-runではフィードバックを生成しません。',
-        'dry_run_unavailable',
-      );
-    }
-    return this.repository.getReportMarkdown(user.id, reportId);
   }
 
   async retryLatestAnalysis(user: User): Promise<void> {

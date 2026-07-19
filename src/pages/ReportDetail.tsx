@@ -2,11 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router';
 import type { AssessmentReport } from '@shared/learning/contracts';
 import { Spinner } from '@/components/ui/Spinner';
-import {
-  getAssessmentReport,
-  getAssessmentReportMarkdown,
-  useLearning,
-} from '@/features/learning';
+import { getAssessmentReport, useLearning } from '@/features/learning';
 import { useAuth } from '@/features/auth';
 
 export function ReportDetail() {
@@ -15,7 +11,6 @@ export function ReportDetail() {
   const { overview } = useLearning();
   const [report, setReport] = useState<AssessmentReport | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     if (!session || !reportId || overview?.mode !== 'live') return;
@@ -47,34 +42,6 @@ export function ReportDetail() {
     );
   }
 
-  async function downloadMarkdown() {
-    if (!session || !reportId) return;
-    setIsDownloading(true);
-    setError(null);
-    try {
-      const markdown = await getAssessmentReportMarkdown(
-        session.access_token,
-        reportId,
-      );
-      const url = URL.createObjectURL(
-        new Blob([markdown], { type: 'text/markdown;charset=utf-8' }),
-      );
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `assessment-feedback-${reportId}.md`;
-      anchor.click();
-      URL.revokeObjectURL(url);
-    } catch (downloadError) {
-      setError(
-        downloadError instanceof Error
-          ? downloadError.message
-          : 'ダウンロードできませんでした。',
-      );
-    } finally {
-      setIsDownloading(false);
-    }
-  }
-
   return (
     <article className="report-detail pb-14">
       <Link className="back-link" to="/reports">
@@ -94,17 +61,6 @@ export function ReportDetail() {
           <small>/ {report.total}</small>
         </div>
       </header>
-      <div className="report-actions">
-        <button
-          className="secondary-link"
-          disabled={isDownloading}
-          onClick={() => void downloadMarkdown()}
-          type="button"
-        >
-          {isDownloading ? '準備中…' : 'Markdownで保存'}
-        </button>
-        {error && <span className="error-banner">{error}</span>}
-      </div>
 
       <section className="grid gap-4 mt-6 lg:grid-cols-2">
         <div className="panel-card bg-green-200">

@@ -1228,14 +1228,6 @@ label {
   box-shadow: 8px 8px 0 #173a3f;
 }
 
-.report-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.9rem;
-  margin-top: 1rem;
-}
-
 .persona-passport-hero::before {
   position: absolute;
   inset: 0;
@@ -1320,6 +1312,34 @@ label {
   background: #fff;
 }
 
+.persona-editable-card .text-input,
+.persona-editable-card .text-area {
+  width: 100%;
+  box-sizing: border-box;
+  border: 3px solid #173a3f;
+  border-radius: 1rem;
+  background: #e8f5ef;
+  color: #173a3f;
+  font-size: 0.95rem;
+  font-weight: 650;
+  outline: none;
+  padding: 0.9rem 1rem;
+  transition:
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.persona-editable-card .text-area {
+  resize: vertical;
+  line-height: 1.75;
+}
+
+.persona-editable-card .text-input:focus,
+.persona-editable-card .text-area:focus {
+  background: #fff5cc;
+  box-shadow: 0 0 0 4px #bdeaf1;
+}
+
 .persona-section-heading {
   display: flex;
   flex-wrap: wrap;
@@ -1328,23 +1348,17 @@ label {
   gap: 1rem;
 }
 
-.editable-sticker,
 .save-confirmation {
   display: inline-flex;
   border: 2px solid #173a3f;
   border-radius: 0.7rem;
-  background: #ffdf72;
+  background: #bcebcf;
   padding: 0.4rem 0.7rem;
   font-family: var(--font-utility);
   font-size: 0.68rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   box-shadow: 2px 2px 0 #173a3f;
-  transform: rotate(-2deg);
-}
-
-.save-confirmation {
-  background: #bcebcf;
   transform: none;
 }
 

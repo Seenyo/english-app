@@ -119,21 +119,6 @@ export function createAiBridgeServer(
       const reportRoute = url.pathname.match(
         /^\/v1\/assessment-reports\/([0-9a-f-]{36})$/i,
       );
-      const reportMarkdownRoute = url.pathname.match(
-        /^\/v1\/assessment-reports\/([0-9a-f-]{36})\/markdown$/i,
-      );
-      if (request.method === 'GET' && reportMarkdownRoute) {
-        sendText(
-          response,
-          200,
-          await learningService.getReportMarkdown(
-            user,
-            reportMarkdownRoute[1]!,
-          ),
-          `assessment-feedback-${reportMarkdownRoute[1]}.md`,
-        );
-        return;
-      }
       if (request.method === 'GET' && reportRoute) {
         sendJson(
           response,
@@ -252,19 +237,6 @@ function sendJson(response: ServerResponse, status: number, body: unknown) {
     'Content-Type': 'application/json; charset=utf-8',
   });
   response.end(JSON.stringify(body));
-}
-
-function sendText(
-  response: ServerResponse,
-  status: number,
-  body: string,
-  filename: string,
-) {
-  response.writeHead(status, {
-    'Content-Type': 'text/markdown; charset=utf-8',
-    'Content-Disposition': `attachment; filename="${filename}"`,
-  });
-  response.end(body);
 }
 
 function handleError(response: ServerResponse, error: unknown) {

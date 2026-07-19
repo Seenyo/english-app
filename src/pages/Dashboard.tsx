@@ -211,7 +211,7 @@ function DryRunDashboard({
             問。回答履歴はDry-run専用領域に保存されています。
           </p>
           <p className="dry-run-analysis-note mt-4">
-            Dry-runではCodex分析・Feedback生成・Persona更新を行いません。
+            Dry-runではCodex分析・フィードバック生成・プロフィール更新を行いません。
           </p>
         </div>
 

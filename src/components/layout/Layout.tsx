@@ -45,8 +45,7 @@ export function Layout({ children }: LayoutProps) {
                         )
                       }
                     >
-                      <span className="sm:hidden">私</span>
-                      <span className="hidden sm:inline">Persona</span>
+                      プロフィール
                     </NavLink>
                     <NavLink
                       to="/reports"
@@ -57,8 +56,7 @@ export function Layout({ children }: LayoutProps) {
                         )
                       }
                     >
-                      <span className="sm:hidden">記録</span>
-                      <span className="hidden sm:inline">Feedback</span>
+                      フィードバック
                     </NavLink>
                   </>
                 )}

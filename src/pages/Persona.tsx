@@ -60,10 +60,9 @@ export function Persona() {
         <section className="panel-card persona-editable-card">
           <div className="persona-section-heading">
             <div>
-              <p className="eyebrow">Written by you</p>
-              <h2>自分で書き換えられること</h2>
+              <p className="eyebrow">About you</p>
+              <h2>プロフィール</h2>
             </div>
-            <span className="editable-sticker">EDITABLE</span>
           </div>
 
           <PersonaTextarea
@@ -252,7 +251,7 @@ export function Persona() {
         </div>
         <div className="panel-card persona-system-card">
           <p className="eyebrow">Measured by the app</p>
-          <h2>変更できない学習記録</h2>
+          <h2>学習記録</h2>
           <dl className="persona-metric-list">
             <Metric
               label="完了した測定"
@@ -270,7 +269,10 @@ export function Persona() {
               label="最終測定"
               value={formatDate(persona.metrics.lastAssessedAt)}
             />
-            <Metric label="Persona更新" value={formatDate(persona.updatedAt)} />
+            <Metric
+              label="プロフィール更新"
+              value={formatDate(persona.updatedAt)}
+            />
           </dl>
         </div>
       </section>

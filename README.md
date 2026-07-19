@@ -21,7 +21,7 @@ ChatGPT Plus/Pro login. No OpenAI API key is used.
 - Local-only dry-run mode with fixed questions and isolated results
 - Asynchronous post-assessment analysis in the same Codex thread
 - One versioned learner persona with user-editable goals and AI/system-owned fields
-- Immutable Japanese feedback reports with all 25 answers and Markdown export
+- Immutable Japanese feedback reports with all 25 answers
 
 ## Architecture
 
