@@ -36,8 +36,19 @@ In Supabase:
 
 ## 3. Apply the database migrations
 
-Open the Supabase SQL Editor and run the complete contents of these files in
-order:
+Install the pinned Supabase CLI, authenticate, and link this checkout to the
+project. Do not apply migration files through the remote SQL Editor: direct
+remote changes bypass migration history and make later pushes unsafe.
+
+```bash
+npm install
+npm run supabase -- login
+npm run supabase -- link --project-ref zqmscunpbzungopdegym
+```
+
+The repository applies these files in timestamp order:
+
+[`supabase/migrations/20260715053827_create_notes_table_with_rls.sql`](./supabase/migrations/20260715053827_create_notes_table_with_rls.sql)
 
 [`supabase/migrations/202607180001_assessment.sql`](./supabase/migrations/202607180001_assessment.sql)
 
@@ -49,7 +60,40 @@ order:
 
 [`supabase/migrations/202607190001_vocabulary_check.sql`](./supabase/migrations/202607190001_vocabulary_check.sql)
 
-The migration creates:
+[`supabase/migrations/20260719071503_fix_vocabulary_session_completion_outcomes.sql`](./supabase/migrations/20260719071503_fix_vocabulary_session_completion_outcomes.sql)
+
+[`supabase/migrations/20260719090126_index_vocabulary_session_counts.sql`](./supabase/migrations/20260719090126_index_vocabulary_session_counts.sql)
+
+### One-time repair for the existing `english-app` project
+
+The first five application migrations were originally run through the SQL
+Editor. Their schema is already present, but their versions must be marked as
+applied once so the CLI does not try to execute older SQL after a newer fix.
+The production project was repaired on 2026-07-19. Run
+`npm run db:migrations:list`; it should show every version in both the local and
+remote columns. Skip the command below when they already match, and always skip
+it for a brand-new Supabase project.
+
+```bash
+npm run db:migrations:list
+npm run supabase -- migration repair --linked --status applied \
+  202607180001 202607180002 202607180003 202607180004 202607190001
+npm run db:migrations:list
+```
+
+`migration repair` changes tracking metadata only; it does not execute schema
+SQL. Confirm that the five versions move into the remote column before pushing.
+
+For both existing and new projects, preview the exact pending list and then
+apply it:
+
+```bash
+npm run db:migrations:check
+npm run db:migrations:push
+npm run db:migrations:list
+```
+
+The migrations create:
 
 - `learner_profiles`
 - `assessment_attempts`

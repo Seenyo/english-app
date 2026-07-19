@@ -68,6 +68,7 @@ export function VocabularyCheckSetup() {
   const { user } = useAuth();
   const { overview, startSession } = useVocabulary();
   const startedAutomatically = useRef(false);
+  const initializedRecheckKind = useRef<VocabularyKind | null>(null);
   const [skippedSections, setSkippedSections] = useState<number[]>([]);
   const [selectedRatings, setSelectedRatings] = useState<VocabularyRating[]>(
     [],
@@ -128,9 +129,14 @@ export function VocabularyCheckSetup() {
   );
 
   useEffect(() => {
-    if (mode !== 'recheck' || selectedRatings.length > 0) return;
+    if (mode !== 'recheck') {
+      initializedRecheckKind.current = null;
+      return;
+    }
+    if (!kind || !counts || initializedRecheckKind.current === kind) return;
+    initializedRecheckKind.current = kind;
     setSelectedRatings(availableRatings.map((choice) => choice.rating));
-  }, [availableRatings, mode, selectedRatings.length]);
+  }, [availableRatings, counts, kind, mode]);
 
   useEffect(() => {
     if (!kind || mode !== 'continue' || startedAutomatically.current) return;

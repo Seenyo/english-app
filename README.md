@@ -81,6 +81,7 @@ before GitHub Pages deployment.
 - [`shared/assessment/contracts.ts`](./shared/assessment/contracts.ts) — shared request/state contracts
 - [`server/assessment/generator.ts`](./server/assessment/generator.ts) — Codex generation and repair loop
 - [`server/assessment/repository.ts`](./server/assessment/repository.ts) — server-only persistence
+- [`supabase/migrations/20260715053827_create_notes_table_with_rls.sql`](./supabase/migrations/20260715053827_create_notes_table_with_rls.sql) — restored migration baseline for per-user notes
 - [`supabase/migrations/202607180001_assessment.sql`](./supabase/migrations/202607180001_assessment.sql) — schema and access policy
 - [`supabase/migrations/202607180002_dry_run.sql`](./supabase/migrations/202607180002_dry_run.sql) — isolated dry-run schema
 - [`supabase/migrations/202607180003_learning_documents.sql`](./supabase/migrations/202607180003_learning_documents.sql) — Persona, reports, agent threads, and analysis jobs
@@ -89,5 +90,7 @@ before GitHub Pages deployment.
 - [`server/learning`](./server/learning) — post-assessment analysis, job processing, and document persistence
 - [`src/features/learning`](./src/features/learning) — Persona and feedback browser state
 - [`supabase/migrations/202607190001_vocabulary_check.sql`](./supabase/migrations/202607190001_vocabulary_check.sql) — vocabulary masters, progress, history, and resumable sessions
+- [`supabase/migrations/20260719071503_fix_vocabulary_session_completion_outcomes.sql`](./supabase/migrations/20260719071503_fix_vocabulary_session_completion_outcomes.sql) — completed outcome for all-skipped vocabulary sessions
+- [`supabase/migrations/20260719090126_index_vocabulary_session_counts.sql`](./supabase/migrations/20260719090126_index_vocabulary_session_counts.sql) — indexed session summary counts
 - [`server/vocabulary`](./server/vocabulary) — server-only vocabulary repository and source parsers
 - [`src/features/vocabulary`](./src/features/vocabulary) — setup, offline queue, swipe interaction, and progress UI
