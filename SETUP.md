@@ -251,7 +251,9 @@ The static frontend still deploys from `main`. GitHub Actions requires only:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
-- optionally `VITE_AI_BRIDGE_URL`
+- `VITE_AI_BRIDGE_URL` as a repository variable containing the public HTTPS
+  endpoint for the personal AI bridge
 
-For use on the same Mac, the default bridge URL is `http://127.0.0.1:8787`.
+Local development defaults to `http://127.0.0.1:8787`. Production builds do
+not fall back to localhost, and CI rejects a missing or non-HTTPS bridge URL.
 The bridge itself is never deployed to GitHub Pages.

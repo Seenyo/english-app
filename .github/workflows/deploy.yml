@@ -30,10 +30,15 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run security:client-boundary
+      - name: Validate AI bridge URL
+        env:
+          VITE_AI_BRIDGE_URL: ${{ vars.VITE_AI_BRIDGE_URL }}
+        run: npm run validate:ai-bridge-url
       - run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_AI_BRIDGE_URL: ${{ vars.VITE_AI_BRIDGE_URL }}
 
   deploy:
     name: deploy to Pages
@@ -50,10 +55,15 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - name: Validate AI bridge URL
+        env:
+          VITE_AI_BRIDGE_URL: ${{ vars.VITE_AI_BRIDGE_URL }}
+        run: npm run validate:ai-bridge-url
       - run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_AI_BRIDGE_URL: ${{ vars.VITE_AI_BRIDGE_URL }}
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

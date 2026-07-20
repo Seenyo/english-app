@@ -4,7 +4,7 @@ import {
   type AssessmentSnapshot,
   type LearnerProfile,
 } from '@shared/assessment/contracts';
-import { aiBridgeUrl } from '@/config/env';
+import { getAiBridgeUrl } from '@/config/env';
 
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT';
@@ -95,7 +95,7 @@ async function request(
 ): Promise<Response> {
   let response: Response;
   try {
-    response = await fetch(`${aiBridgeUrl}${path}`, {
+    response = await fetch(`${getAiBridgeUrl()}${path}`, {
       method: options.method ?? 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -109,7 +109,7 @@ async function request(
     });
   } catch {
     throw new AssessmentApiError(
-      '個人用AIブリッジに接続できません。MacでAIサーバーが起動しているか確認してください。',
+      '個人用AIブリッジに接続できません。しばらく待ってから再度お試しください。',
       'bridge_unreachable',
       true,
     );

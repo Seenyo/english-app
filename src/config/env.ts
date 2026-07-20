@@ -3,7 +3,19 @@
 // credentials must never appear here (or anywhere in src/).
 export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const configuredAiBridgeUrl = import.meta.env.VITE_AI_BRIDGE_URL
+  ?.trim()
+  .replace(/\/+$/, '');
+
 export const aiBridgeUrl =
-  import.meta.env.VITE_AI_BRIDGE_URL ?? 'http://127.0.0.1:8787';
+  configuredAiBridgeUrl ||
+  (import.meta.env.DEV ? 'http://127.0.0.1:8787' : null);
+
+export function getAiBridgeUrl(): string {
+  if (!aiBridgeUrl) {
+    throw new Error('AIブリッジの公開URLが設定されていません。');
+  }
+  return aiBridgeUrl;
+}
 
 export const isConfigured = Boolean(supabaseUrl && supabaseAnonKey);
