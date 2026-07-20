@@ -9,7 +9,7 @@ import {
   type StartVocabularySessionResult,
   type VocabularySession,
 } from '@shared/vocabulary/contracts';
-import { aiBridgeUrl } from '@/config/env';
+import { getAiBridgeUrl } from '@/config/env';
 import { VocabularyApiError } from './errors';
 
 export function getVocabularyOverview(
@@ -104,7 +104,7 @@ async function request(
 ): Promise<Response> {
   let response: Response;
   try {
-    response = await fetch(`${aiBridgeUrl}${path}`, {
+    response = await fetch(`${getAiBridgeUrl()}${path}`, {
       method: options.method ?? 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
