@@ -15,6 +15,7 @@ import {
   type VocabularySession,
 } from '@shared/vocabulary/contracts';
 import { Spinner } from '@/components/ui/Spinner';
+import { NavigationIcon } from '@/components/ui/NavigationIcon';
 import { useAuth } from '@/features/auth';
 import {
   cacheVocabularySession,
@@ -290,6 +291,7 @@ export function VocabularyCheckSession() {
         card,
         rating,
       });
+      sessionRef.current = nextSession;
       setSession(nextSession);
       setSyncState('queued');
       void queueVocabularyProgress(
@@ -334,6 +336,7 @@ export function VocabularyCheckSession() {
         -1,
       ),
     };
+    sessionRef.current = nextSession;
     setSession(nextSession);
     setLastClassification(null);
     setSyncState('queued');
@@ -385,7 +388,7 @@ export function VocabularyCheckSession() {
 
   function leaveSession() {
     const current = sessionRef.current;
-    navigate('/study/vocabulary', { replace: true });
+    navigate('/', { replace: true });
     if (!current || !user) return;
     void (async () => {
       const flushResult = await flush();
@@ -489,11 +492,12 @@ export function VocabularyCheckSession() {
     <div className="swipe-session-page">
       <header className="swipe-session-toolbar">
         <button
-          aria-label="単語・熟語帳へ戻る"
+          aria-label="ホームへ戻る"
           onClick={leaveSession}
+          title="ホームへ戻る"
           type="button"
         >
-          ←
+          <NavigationIcon name="home" />
         </button>
         <div className="swipe-session-progress-copy">
           <strong>
@@ -516,9 +520,10 @@ export function VocabularyCheckSession() {
           aria-label="最後の分類を元に戻す"
           disabled={!lastClassification || syncState === 'recovery'}
           onClick={undo}
+          title="最後の分類を元に戻す"
           type="button"
         >
-          ↶
+          ←
         </button>
       </header>
 
