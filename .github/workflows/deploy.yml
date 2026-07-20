@@ -33,7 +33,7 @@ jobs:
       - name: Validate AI bridge URL
         env:
           VITE_AI_BRIDGE_URL: ${{ vars.VITE_AI_BRIDGE_URL }}
-        run: test -n "$VITE_AI_BRIDGE_URL" && test "${VITE_AI_BRIDGE_URL#https://}" != "$VITE_AI_BRIDGE_URL"
+        run: npm run validate:ai-bridge-url
       - run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -55,6 +55,10 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - name: Validate AI bridge URL
+        env:
+          VITE_AI_BRIDGE_URL: ${{ vars.VITE_AI_BRIDGE_URL }}
+        run: npm run validate:ai-bridge-url
       - run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
