@@ -1,0 +1,12 @@
+[Unit]
+Description=Check for English AI Bridge updates
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=5min
+RandomizedDelaySec=30s
+Persistent=true
+Unit=english-ai-deploy.service
+
+[Install]
+WantedBy=timers.target

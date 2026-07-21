@@ -26,6 +26,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - name: Validate Oracle deployment scripts
+        run: bash -n ops/oracle/*.sh
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
