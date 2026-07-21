@@ -1,0 +1,9 @@
+[Unit]
+Description=Deploy validated English AI Bridge updates
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/deploy-english-ai
+TimeoutStartSec=15min
