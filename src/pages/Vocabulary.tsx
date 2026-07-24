@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import {
+  canContinueVocabularyCheck,
   vocabularyActivities,
   vocabularyScopeLabels,
   useVocabulary,
@@ -150,12 +151,7 @@ function SectionScopeChoices({
         const sectionCount = scope === 'words' ? 19 : 17;
         const kind = scope === 'words' ? 'word' : 'idiom';
         const counts = scope === 'words' ? overview?.words : overview?.idioms;
-        const resumable = overview?.resumableSessions.some(
-          (session) => session.kind === kind,
-        );
-        const canContinue =
-          resumable ||
-          Boolean(counts && counts.classified > 0 && counts.unclassified > 0);
+        const canContinue = canContinueVocabularyCheck(overview, kind);
         const canRecheck = Boolean(counts && counts.classified > 0);
         return (
           <div className="check-scope-item" key={scope}>

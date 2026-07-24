@@ -92,6 +92,7 @@ export class VocabularyRepository {
         userId,
         request.kind,
         request.section,
+        request.mode,
       );
       if (resumable) {
         return startVocabularySessionResultSchema.parse({
@@ -328,15 +329,25 @@ export class VocabularyRepository {
     userId: string,
     kind: VocabularyKind,
     section?: number,
+    mode?: StartVocabularySessionRequest['mode'],
   ) {
-    const { data, error } = await this.database
+    const scope = buildResumableSessionScope(section, mode);
+    let query = this.database
       .from('vocabulary_check_sessions')
       .select(
         'id, user_id, kind, section, mode, status, item_ids, current_index',
       )
       .eq('user_id', userId)
-      .eq('kind', kind)
-      .match(section === undefined ? {} : { section })
+      .eq('kind', kind);
+    if (scope.mode !== undefined) {
+      query = query.eq('mode', scope.mode);
+    }
+    if (scope.section === null) {
+      query = query.is('section', null);
+    } else if (scope.section !== undefined) {
+      query = query.eq('section', scope.section);
+    }
+    const { data, error } = await query
       .in('status', ['active', 'paused'])
       .order('updated_at', { ascending: false })
       .limit(1)
@@ -496,4 +507,18 @@ export function resolveVocabularyRepositoryCode(error: {
     error.code ??
     null
   );
+}
+
+export function buildResumableSessionScope(
+  section?: number,
+  mode?: StartVocabularySessionRequest['mode'],
+) {
+  return {
+    ...(mode === undefined
+      ? section === undefined
+        ? {}
+        : { section }
+      : { section: section ?? null }),
+    ...(mode === undefined ? {} : { mode }),
+  };
 }
