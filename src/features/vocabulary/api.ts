@@ -1,9 +1,15 @@
 import {
   startVocabularySessionResultSchema,
+  vocabularyMemoryOverviewSchema,
+  vocabularyMemorySessionSchema,
   vocabularyOverviewSchema,
   vocabularySessionSchema,
+  type AnswerVocabularyMemoryRequest,
   type StartVocabularySessionRequest,
+  type StartVocabularyMemoryRequest,
   type VocabularyKind,
+  type VocabularyMemoryOverview,
+  type VocabularyMemorySession,
   type VocabularyOperation,
   type VocabularyOverview,
   type StartVocabularySessionResult,
@@ -31,6 +37,51 @@ export function startVocabularySession(
     '/v1/vocabulary/sessions',
     startVocabularySessionResultSchema.parse,
     { method: 'POST', body: request },
+  );
+}
+
+export function getVocabularyMemoryOverview(
+  token: string,
+): Promise<VocabularyMemoryOverview> {
+  return requestJson(
+    token,
+    '/v1/vocabulary/memory/overview',
+    vocabularyMemoryOverviewSchema.parse,
+  );
+}
+
+export function startVocabularyMemorySession(
+  token: string,
+  request: StartVocabularyMemoryRequest,
+): Promise<VocabularyMemorySession> {
+  return requestJson(
+    token,
+    '/v1/vocabulary/memory/sessions',
+    vocabularyMemorySessionSchema.parse,
+    {
+      method: 'POST',
+      body: request,
+      networkErrorMessage:
+        '暗記セッションを準備できませんでした。接続を確認して、もう一度お試しください。',
+    },
+  );
+}
+
+export function answerVocabularyMemoryCard(
+  token: string,
+  sessionId: string,
+  input: AnswerVocabularyMemoryRequest,
+): Promise<VocabularyMemorySession> {
+  return requestJson(
+    token,
+    `/v1/vocabulary/memory/sessions/${encodeURIComponent(sessionId)}/answers`,
+    vocabularyMemorySessionSchema.parse,
+    {
+      method: 'POST',
+      body: input,
+      networkErrorMessage:
+        '暗記結果を保存できませんでした。接続を確認して、もう一度選んでください。',
+    },
   );
 }
 
@@ -95,6 +146,7 @@ async function requestJson<T>(
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT';
   body?: unknown;
+  networkErrorMessage?: string;
 };
 
 async function request(
@@ -118,7 +170,8 @@ async function request(
     });
   } catch {
     throw new VocabularyApiError(
-      '学習サーバーに接続できません。操作は端末内に保持されています。',
+      options.networkErrorMessage ??
+        '学習サーバーに接続できません。操作は端末内に保持されています。',
       'network_error',
       true,
       null,

@@ -2,12 +2,18 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import {
   startVocabularySessionResultSchema,
   vocabularySessionConflictCodes,
+  vocabularyMemoryOverviewSchema,
+  vocabularyMemorySessionSchema,
   vocabularyOverviewSchema,
   vocabularySessionSchema,
+  type AnswerVocabularyMemoryRequest,
+  type StartVocabularyMemoryRequest,
   type StartVocabularySessionRequest,
   type StartVocabularySessionResult,
   type VocabularyCard,
   type VocabularyKind,
+  type VocabularyMemoryOverview,
+  type VocabularyMemorySession,
   type VocabularyOperation,
   type VocabularyOverview,
   type VocabularyRating,
@@ -19,6 +25,7 @@ type SessionRow = {
   id: string;
   user_id: string;
   kind: VocabularyKind;
+  section: number | null;
   mode: StartVocabularySessionRequest['mode'];
   status: 'active' | 'paused' | 'completed' | 'abandoned';
   item_ids: number[];
@@ -33,6 +40,18 @@ type ItemRow = {
   meaning_ja: string;
   section: number | null;
   part: number | null;
+};
+
+type MemorySessionRow = {
+  id: string;
+  kind: VocabularyKind;
+  section: number;
+  status: 'active' | 'completed' | 'abandoned';
+  initial_item_ids: number[];
+  queue_ids: number[];
+  current_index: number;
+  remembered_item_ids: number[];
+  again_item_ids: number[];
 };
 
 export class VocabularyRepositoryError extends Error {
@@ -69,7 +88,11 @@ export class VocabularyRepository {
     request: StartVocabularySessionRequest,
   ): Promise<StartVocabularySessionResult> {
     if (request.mode === 'continue') {
-      const resumable = await this.findResumableSession(userId, request.kind);
+      const resumable = await this.findResumableSession(
+        userId,
+        request.kind,
+        request.section,
+      );
       if (resumable) {
         return startVocabularySessionResultSchema.parse({
           outcome: 'session',
@@ -77,16 +100,22 @@ export class VocabularyRepository {
         });
       }
     }
-    const { data, error } = await this.database.rpc(
-      'start_vocabulary_check_session',
-      {
-        p_user_id: userId,
-        p_kind: request.kind,
-        p_mode: request.mode,
-        p_skipped_sections: request.skippedSections,
-        p_recheck_ratings: request.recheckRatings,
-      },
-    );
+    const { data, error } =
+      request.section === undefined
+        ? await this.database.rpc('start_vocabulary_check_session', {
+            p_user_id: userId,
+            p_kind: request.kind,
+            p_mode: request.mode,
+            p_skipped_sections: request.skippedSections,
+            p_recheck_ratings: request.recheckRatings,
+          })
+        : await this.database.rpc('start_vocabulary_check_section_session', {
+            p_user_id: userId,
+            p_kind: request.kind,
+            p_section: request.section,
+            p_mode: request.mode,
+            p_recheck_ratings: request.recheckRatings,
+          });
     if (error)
       throw repositoryError('Could not start vocabulary check.', error);
     const sessionId = String(data);
@@ -150,6 +179,7 @@ export class VocabularyRepository {
     return vocabularySessionSchema.parse({
       id: row.id,
       kind: row.kind,
+      section: row.section,
       mode: row.mode,
       status: row.status,
       position: row.current_index,
@@ -195,12 +225,118 @@ export class VocabularyRepository {
       throw repositoryError('Could not finish vocabulary check.', error);
   }
 
-  private async findResumableSession(userId: string, kind: VocabularyKind) {
+  async getMemoryOverview(userId: string): Promise<VocabularyMemoryOverview> {
+    const { data, error } = await this.database.rpc(
+      'get_vocabulary_memory_overview',
+      { p_user_id: userId },
+    );
+    if (error)
+      throw repositoryError('Could not load memorization overview.', error);
+    return vocabularyMemoryOverviewSchema.parse(data);
+  }
+
+  async startMemorySession(
+    userId: string,
+    request: StartVocabularyMemoryRequest,
+  ): Promise<VocabularyMemorySession> {
+    const { data, error } = await this.database.rpc(
+      'start_vocabulary_memory_section_session',
+      {
+        p_user_id: userId,
+        p_kind: request.kind,
+        p_section: request.section,
+      },
+    );
+    if (error?.code === '23505') {
+      const activeSessionId = await this.findActiveMemorySessionId(userId);
+      if (activeSessionId) {
+        return this.loadMemorySession(userId, activeSessionId);
+      }
+    }
+    if (error)
+      throw repositoryError('Could not start memorization session.', error);
+    return this.loadMemorySession(userId, String(data));
+  }
+
+  async answerMemoryCard(
+    userId: string,
+    sessionId: string,
+    input: AnswerVocabularyMemoryRequest,
+  ): Promise<VocabularyMemorySession> {
+    const { error } = await this.database.rpc('answer_vocabulary_memory_card', {
+      p_user_id: userId,
+      p_session_id: sessionId,
+      p_operation_id: input.operationId,
+      p_item_id: input.itemId,
+      p_result: input.result,
+      p_response_ms: input.responseMs,
+    });
+    if (error)
+      throw repositoryError('Could not save memorization result.', error);
+    return this.loadMemorySession(userId, sessionId);
+  }
+
+  async loadMemorySession(
+    userId: string,
+    sessionId: string,
+  ): Promise<VocabularyMemorySession> {
+    const { data, error } = await this.database
+      .from('vocabulary_memory_sessions')
+      .select(
+        'id, kind, section, status, initial_item_ids, queue_ids, current_index, remembered_item_ids, again_item_ids',
+      )
+      .eq('id', sessionId)
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error)
+      throw repositoryError('Could not load memorization session.', error);
+    const row = (data as MemorySessionRow | null) ?? null;
+    if (!row || row.status === 'abandoned') {
+      throw new VocabularyRepositoryError(
+        'この暗記セッションは読み込めません。',
+        'memory_session_not_found',
+      );
+    }
+
+    const currentItemId =
+      row.status === 'active' ? row.queue_ids[row.current_index] : undefined;
+    const items =
+      currentItemId === undefined ? [] : await this.loadItems([currentItemId]);
+    const currentItem = items[0];
+    if (currentItemId !== undefined && !currentItem) {
+      throw new VocabularyRepositoryError(
+        `Vocabulary item ${currentItemId} is missing.`,
+        'vocabulary_item_missing',
+      );
+    }
+
+    return vocabularyMemorySessionSchema.parse({
+      id: row.id,
+      kind: row.kind,
+      section: row.section,
+      status: row.status,
+      position: row.current_index,
+      total: row.queue_ids.length,
+      initialCount: row.initial_item_ids.length,
+      currentCard: currentItem ? mapMemoryCard(currentItem) : null,
+      rememberedCount: row.remembered_item_ids.length,
+      againCount: row.again_item_ids.length,
+    });
+  }
+
+  private async findResumableSession(
+    userId: string,
+    kind: VocabularyKind,
+    section?: number,
+  ) {
     const { data, error } = await this.database
       .from('vocabulary_check_sessions')
-      .select('id, user_id, kind, mode, status, item_ids, current_index')
+      .select(
+        'id, user_id, kind, section, mode, status, item_ids, current_index',
+      )
       .eq('user_id', userId)
       .eq('kind', kind)
+      .match(section === undefined ? {} : { section })
       .in('status', ['active', 'paused'])
       .order('updated_at', { ascending: false })
       .limit(1)
@@ -210,10 +346,26 @@ export class VocabularyRepository {
     return (data as SessionRow | null) ?? null;
   }
 
+  private async findActiveMemorySessionId(userId: string) {
+    const { data, error } = await this.database
+      .from('vocabulary_memory_sessions')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error)
+      throw repositoryError('Could not inspect memorization session.', error);
+    return (data as { id: string } | null)?.id ?? null;
+  }
+
   private async getSessionRow(userId: string, sessionId: string) {
     const { data, error } = await this.database
       .from('vocabulary_check_sessions')
-      .select('id, user_id, kind, mode, status, item_ids, current_index')
+      .select(
+        'id, user_id, kind, section, mode, status, item_ids, current_index',
+      )
       .eq('id', sessionId)
       .eq('user_id', userId)
       .maybeSingle();
@@ -289,6 +441,18 @@ function mapCard(
   };
 }
 
+function mapMemoryCard(item: ItemRow) {
+  return {
+    id: item.id,
+    kind: item.kind,
+    sourceOrder: item.source_order,
+    term: item.term,
+    meaningJa: item.meaning_ja,
+    section: item.section,
+    part: item.part,
+  };
+}
+
 function repositoryError(
   message: string,
   error: { code?: string; message?: string },
@@ -303,6 +467,7 @@ const vocabularyRepositoryDomainCodes = [
   ...vocabularySessionConflictCodes,
   'vocabulary_queue_empty',
   'invalid_vocabulary_kind',
+  'invalid_vocabulary_section',
   'invalid_vocabulary_mode',
   'idioms_have_no_sections',
   'invalid_vocabulary_operations',
@@ -311,6 +476,13 @@ const vocabularyRepositoryDomainCodes = [
   'invalid_vocabulary_rating',
   'invalid_vocabulary_action',
   'invalid_vocabulary_session_status',
+  'vocabulary_memory_queue_empty',
+  'memory_session_not_found',
+  'memory_session_not_active',
+  'memory_item_out_of_order',
+  'memory_attempt_limit_reached',
+  'invalid_memory_result',
+  'invalid_memory_response_time',
 ] as const;
 
 export function resolveVocabularyRepositoryCode(error: {

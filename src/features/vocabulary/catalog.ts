@@ -4,7 +4,6 @@ export type VocabularyScopeKey = 'mixed' | 'words' | 'idioms';
 export type VocabularyActivity = {
   key: VocabularyActivityKey;
   label: string;
-  eyebrow: string;
   description: string;
   symbol: string;
   tone: 'coral' | 'green' | 'yellow';
@@ -15,7 +14,6 @@ export const vocabularyActivities: VocabularyActivity[] = [
   {
     key: 'check',
     label: '習熟度チェック',
-    eyebrow: 'Sort your words',
     description: '知っている・まだ曖昧を分けて、学ぶ順番を整えます。',
     symbol: '✓',
     tone: 'coral',
@@ -24,16 +22,14 @@ export const vocabularyActivities: VocabularyActivity[] = [
   {
     key: 'memorize',
     label: '暗記',
-    eyebrow: 'Build your memory',
-    description: '意味を確かめながら、自分のペースで覚えます。',
-    symbol: 'Aa',
+    description: '今日覚える言葉だけを、自動で短くまとめます。',
+    symbol: '記',
     tone: 'green',
-    scopes: ['mixed', 'words', 'idioms'],
+    scopes: ['words', 'idioms'],
   },
   {
     key: 'quiz',
     label: '問題',
-    eyebrow: 'Test yourself',
     description: '覚えた内容を、選択問題などで確かめます。',
     symbol: '?',
     tone: 'yellow',

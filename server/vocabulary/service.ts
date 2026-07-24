@@ -1,5 +1,7 @@
 import type { User } from '@supabase/supabase-js';
 import type {
+  AnswerVocabularyMemoryRequest,
+  StartVocabularyMemoryRequest,
   StartVocabularySessionRequest,
   VocabularyKind,
   VocabularyOperation,
@@ -51,5 +53,21 @@ export class VocabularyService {
 
   loadSession(user: User, sessionId: string) {
     return this.repository.loadSession(user.id, sessionId);
+  }
+
+  getMemoryOverview(user: User) {
+    return this.repository.getMemoryOverview(user.id);
+  }
+
+  startMemorySession(user: User, input: StartVocabularyMemoryRequest) {
+    return this.repository.startMemorySession(user.id, input);
+  }
+
+  answerMemoryCard(
+    user: User,
+    sessionId: string,
+    input: AnswerVocabularyMemoryRequest,
+  ) {
+    return this.repository.answerMemoryCard(user.id, sessionId, input);
   }
 }

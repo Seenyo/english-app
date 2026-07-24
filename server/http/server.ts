@@ -9,10 +9,12 @@ import {
 } from '../../shared/assessment/contracts.ts';
 import { updatePersonaRequestSchema } from '../../shared/learning/contracts.ts';
 import {
+  answerVocabularyMemoryRequestSchema,
   finishVocabularySessionRequestSchema,
   isVocabularySessionConflictCode,
   saveVocabularyOperationsRequestSchema,
   startVocabularySessionRequestSchema,
+  startVocabularyMemoryRequestSchema,
   vocabularyKindSchema,
 } from '../../shared/vocabulary/contracts.ts';
 import { AssessmentRepositoryError } from '../assessment/repository.ts';
@@ -84,6 +86,54 @@ export function createAiBridgeServer(
         url.pathname === '/v1/vocabulary/overview'
       ) {
         sendJson(response, 200, await vocabularyService.getOverview(user));
+        return;
+      }
+
+      if (
+        request.method === 'GET' &&
+        url.pathname === '/v1/vocabulary/memory/overview'
+      ) {
+        sendJson(
+          response,
+          200,
+          await vocabularyService.getMemoryOverview(user),
+        );
+        return;
+      }
+
+      if (
+        request.method === 'POST' &&
+        url.pathname === '/v1/vocabulary/memory/sessions'
+      ) {
+        const parsed = startVocabularyMemoryRequestSchema.safeParse(
+          await readJsonBody(request),
+        );
+        if (!parsed.success) throw invalidRequest(parsed.error.issues);
+        sendJson(
+          response,
+          200,
+          await vocabularyService.startMemorySession(user, parsed.data),
+        );
+        return;
+      }
+
+      const vocabularyMemoryAnswerRoute = url.pathname.match(
+        /^\/v1\/vocabulary\/memory\/sessions\/([0-9a-f-]{36})\/answers$/i,
+      );
+      if (request.method === 'POST' && vocabularyMemoryAnswerRoute) {
+        const parsed = answerVocabularyMemoryRequestSchema.safeParse(
+          await readJsonBody(request),
+        );
+        if (!parsed.success) throw invalidRequest(parsed.error.issues);
+        sendJson(
+          response,
+          200,
+          await vocabularyService.answerMemoryCard(
+            user,
+            vocabularyMemoryAnswerRoute[1]!,
+            parsed.data,
+          ),
+        );
         return;
       }
 
@@ -393,12 +443,22 @@ function handleError(response: ServerResponse, error: unknown) {
       'invalid_vocabulary_rating',
       'invalid_vocabulary_action',
       'invalid_vocabulary_session_status',
+      'invalid_memory_result',
+      'invalid_memory_response_time',
+    ]);
+    const memoryConflictCodes = new Set([
+      'memory_session_not_active',
+      'memory_item_out_of_order',
+      'memory_attempt_limit_reached',
     ]);
     const status =
       error.code === 'vocabulary_session_not_found' ||
-      error.code === 'vocabulary_queue_empty'
+      error.code === 'vocabulary_queue_empty' ||
+      error.code === 'memory_session_not_found' ||
+      error.code === 'vocabulary_memory_queue_empty'
         ? 404
-        : isVocabularySessionConflictCode(error.code)
+        : isVocabularySessionConflictCode(error.code) ||
+            memoryConflictCodes.has(error.code ?? '')
           ? 409
           : invalidCodes.has(error.code ?? '')
             ? 400

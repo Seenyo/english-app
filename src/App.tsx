@@ -16,6 +16,7 @@ import { Study } from '@/pages/Study';
 import { Vocabulary } from '@/pages/Vocabulary';
 import { VocabularyCheckSession } from '@/pages/VocabularyCheckSession';
 import { VocabularyCheckSetup } from '@/pages/VocabularyCheckSetup';
+import { VocabularyMemory } from '@/pages/VocabularyMemory';
 import { VocabularySetup } from '@/pages/VocabularySetup';
 
 export default function App() {
@@ -29,6 +30,22 @@ export default function App() {
                 <Layout>
                   <Routes>
                     <Route element={<Home />} path="/" />
+                    <Route
+                      element={
+                        <RequireAuth>
+                          <Navigate replace to="/study/vocabulary" />
+                        </RequireAuth>
+                      }
+                      path="/study/vocabulary/memorize"
+                    />
+                    <Route
+                      element={
+                        <RequireAuth>
+                          <VocabularyMemory />
+                        </RequireAuth>
+                      }
+                      path="/study/vocabulary/memorize/:scope/:section"
+                    />
                     <Route
                       element={
                         <RequireAuth>

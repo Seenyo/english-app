@@ -35,7 +35,6 @@ export function VocabularySetup() {
           <span />
           <span />
         </div>
-        <p className="eyebrow">Next step</p>
         <h1>ここで、学び方を細かく選びます。</h1>
         <p className="setup-placeholder-copy">
           出題範囲、件数、難易度などの設定を、次の実装でこのページに追加します。

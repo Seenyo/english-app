@@ -1,4 +1,6 @@
 dist
 node_modules
+local-model-evaluation/.venv
+local-model-evaluation/artifacts
 package-lock.json
 pnpm-lock.yaml
