@@ -4,6 +4,7 @@ export {
   vocabularyActivities,
   vocabularyScopeLabels,
 } from './catalog';
+export { canContinueVocabularyCheck } from './continuation';
 export type {
   VocabularyActivity,
   VocabularyActivityKey,
