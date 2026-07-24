@@ -561,13 +561,14 @@ export function VocabularyCheckSession() {
         <main className="swipe-session-main">
           <div className="swipe-item-meta">
             <span>
-              No. {currentCard.sourceOrder.toLocaleString()} /{' '}
+              {currentCard.sourceOrder.toLocaleString()} /{' '}
               {currentCard.kind === 'word' ? '1,900' : '1,684'}
             </span>
             {currentCard.section && (
               <span>
-                Section {currentCard.section}・
-                {partShortLabel(currentCard.part)}
+                {currentCard.section}
+                {currentCard.kind === 'word' &&
+                  `・${partShortLabel(currentCard.part)}`}
               </span>
             )}
           </div>
@@ -601,7 +602,6 @@ function CheckpointSummary({
       <div className="checkpoint-seal" aria-hidden="true">
         {atEnd ? '✓' : '100'}
       </div>
-      <p className="eyebrow">Checkpoint</p>
       <h1>{atEnd ? 'すべて確認しました。' : '100個、進みました。'}</h1>
       <div className="checkpoint-counts">
         <span className="rating-mastered">

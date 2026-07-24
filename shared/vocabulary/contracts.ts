@@ -4,6 +4,9 @@ export const vocabularyKinds = ['word', 'idiom'] as const;
 export const vocabularyKindSchema = z.enum(vocabularyKinds);
 export type VocabularyKind = z.infer<typeof vocabularyKindSchema>;
 
+export const vocabularySectionSchema = z.number().int().min(1).max(19);
+export type VocabularySection = z.infer<typeof vocabularySectionSchema>;
+
 export const vocabularyRatings = [
   'mastered',
   'mostly_known',
@@ -31,6 +34,7 @@ export type VocabularyCount = z.infer<typeof vocabularyCountSchema>;
 export const resumableVocabularySessionSchema = z.object({
   id: z.string().uuid(),
   kind: vocabularyKindSchema,
+  section: vocabularySectionSchema.nullable(),
   mode: vocabularyCheckModeSchema,
   position: z.number().int().nonnegative(),
   total: z.number().int().positive(),
@@ -59,6 +63,7 @@ export type VocabularyCard = z.infer<typeof vocabularyCardSchema>;
 export const vocabularySessionSchema = z.object({
   id: z.string().uuid(),
   kind: vocabularyKindSchema,
+  section: vocabularySectionSchema.nullable(),
   mode: vocabularyCheckModeSchema,
   status: z.enum(['active', 'paused']),
   position: z.number().int().nonnegative(),
@@ -73,6 +78,63 @@ export const vocabularySessionSchema = z.object({
   }),
 });
 export type VocabularySession = z.infer<typeof vocabularySessionSchema>;
+
+export const vocabularyMemoryResultSchema = z.enum(['remembered', 'again']);
+export type VocabularyMemoryResult = z.infer<
+  typeof vocabularyMemoryResultSchema
+>;
+
+export const vocabularyMemoryOverviewSchema = z.object({
+  recommendedCount: z.number().int().min(0).max(10),
+  estimatedMinutes: z.number().int().min(0).max(10),
+  streakDays: z.number().int().nonnegative(),
+  hasActiveSession: z.boolean(),
+  lastMemorizedAt: z.string().datetime({ offset: true }).nullable(),
+});
+export type VocabularyMemoryOverview = z.infer<
+  typeof vocabularyMemoryOverviewSchema
+>;
+
+export const vocabularyMemoryCardSchema = vocabularyCardSchema.omit({
+  currentRating: true,
+});
+export type VocabularyMemoryCard = z.infer<typeof vocabularyMemoryCardSchema>;
+
+export const startVocabularyMemoryRequestSchema = z
+  .object({
+    kind: vocabularyKindSchema,
+    section: vocabularySectionSchema,
+  })
+  .superRefine(validateVocabularySection);
+export type StartVocabularyMemoryRequest = z.infer<
+  typeof startVocabularyMemoryRequestSchema
+>;
+
+export const vocabularyMemorySessionSchema = z.object({
+  id: z.string().uuid(),
+  kind: vocabularyKindSchema,
+  section: vocabularySectionSchema,
+  status: z.enum(['active', 'completed']),
+  position: z.number().int().nonnegative(),
+  total: z.number().int().positive(),
+  initialCount: z.number().int().min(1).max(10),
+  currentCard: vocabularyMemoryCardSchema.nullable(),
+  rememberedCount: z.number().int().nonnegative(),
+  againCount: z.number().int().nonnegative(),
+});
+export type VocabularyMemorySession = z.infer<
+  typeof vocabularyMemorySessionSchema
+>;
+
+export const answerVocabularyMemoryRequestSchema = z.object({
+  operationId: z.string().uuid(),
+  itemId: z.number().int().positive(),
+  result: vocabularyMemoryResultSchema,
+  responseMs: z.number().int().min(0).max(600_000),
+});
+export type AnswerVocabularyMemoryRequest = z.infer<
+  typeof answerVocabularyMemoryRequestSchema
+>;
 
 export const startVocabularySessionResultSchema = z.discriminatedUnion(
   'outcome',
@@ -112,6 +174,7 @@ export function isVocabularySessionConflictCode(
 export const startVocabularySessionRequestSchema = z
   .object({
     kind: vocabularyKindSchema,
+    section: vocabularySectionSchema.optional(),
     mode: vocabularyCheckModeSchema,
     skippedSections: z.array(z.number().int().min(1).max(19)).max(19),
     recheckRatings: z.array(vocabularyRatingSchema).max(4),
@@ -121,8 +184,21 @@ export const startVocabularySessionRequestSchema = z
       context.addIssue({
         code: 'custom',
         path: ['skippedSections'],
-        message: 'Idioms do not have sections.',
+        message: 'Idioms do not support section skipping.',
       });
+    }
+    if (value.section !== undefined && value.skippedSections.length > 0) {
+      context.addIssue({
+        code: 'custom',
+        path: ['skippedSections'],
+        message: 'Section-scoped checks cannot skip other sections.',
+      });
+    }
+    if (value.section !== undefined) {
+      validateVocabularySection(
+        { kind: value.kind, section: value.section },
+        context,
+      );
     }
     if (value.mode !== 'restart' && value.skippedSections.length > 0) {
       context.addIssue({
@@ -142,6 +218,19 @@ export const startVocabularySessionRequestSchema = z
 export type StartVocabularySessionRequest = z.infer<
   typeof startVocabularySessionRequestSchema
 >;
+
+function validateVocabularySection(
+  value: { kind: VocabularyKind; section: number },
+  context: z.RefinementCtx,
+) {
+  if (value.kind === 'idiom' && value.section > 17) {
+    context.addIssue({
+      code: 'custom',
+      path: ['section'],
+      message: 'Idioms have 17 sections.',
+    });
+  }
+}
 
 const classifyOperationSchema = z.object({
   id: z.string().uuid(),

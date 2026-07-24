@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:preview": "vite --mode preview",
     "dev:ai": "node --env-file-if-exists=.env.server --import tsx --watch server/index.ts",
     "dev:ai:dry-run": "ASSESSMENT_MODE=dry-run npm run dev:ai",
     "ai:start": "node --env-file-if-exists=.env.server --import tsx server/index.ts",
@@ -18,7 +19,7 @@
     "db:migrations:push": "supabase db push --linked",
     "build": "tsc -b && vite build && node scripts/postbuild.mjs",
     "typecheck": "tsc -b",
-    "test": "node --import tsx --test server/**/*.test.ts shared/**/*.test.ts scripts/*.test.mjs src/features/vocabulary/components/*.test.mjs",
+    "test": "node --import tsx --test server/**/*.test.ts shared/**/*.test.ts scripts/*.test.mjs src/features/developer-preview/*.test.mjs src/features/vocabulary/components/*.test.mjs",
     "validate:ai-bridge-url": "node scripts/validate-ai-bridge-url.mjs",
     "security:client-boundary": "node scripts/check-client-boundary.mjs",
     "lint": "eslint .",

@@ -66,6 +66,10 @@ The repository applies these files in timestamp order:
 
 [`supabase/migrations/20260719130040_save_assessment_answers_atomically.sql`](./supabase/migrations/20260719130040_save_assessment_answers_atomically.sql)
 
+[`supabase/migrations/20260724035618_vocabulary_memory_sessions.sql`](./supabase/migrations/20260724035618_vocabulary_memory_sessions.sql)
+
+[`supabase/migrations/20260724040634_index_vocabulary_memory_progress_item.sql`](./supabase/migrations/20260724040634_index_vocabulary_memory_progress_item.sql)
+
 ### One-time repair for the existing `english-app` project
 
 The first five application migrations were originally run through the SQL
@@ -117,6 +121,10 @@ cannot query them directly.
 The vocabulary migration adds the shared word/idiom master, per-user current
 classification, simple classification history, and resumable ordered queues.
 These tables and their functions are also bridge-only.
+
+The memorization migrations add short, resumable ten-item sessions, per-item
+review timing, response history, and atomic same-session retries. Scheduling is
+kept server-side; the browser receives only the current card and summary.
 
 ## 4. Import the vocabulary sources
 
@@ -185,6 +193,19 @@ The AI bridge listens only on `127.0.0.1`. Its health endpoint is
 <http://127.0.0.1:8787/health>.
 
 ## 8. Optional fixed-question dry-run
+
+For fast visual and interaction checks that do not need the bridge, Supabase,
+Google login, or Codex, start the frontend in Developer Preview mode:
+
+```bash
+npm run dev:preview
+```
+
+Developer Preview exists only in Vite development builds. It loads a completed
+learner state and deterministic feature fixtures in memory, displays a visible
+PREVIEW ribbon, and does not persist application data. Use this for UI work;
+use the fixed-question dry-run below when testing the real 10/10/5 assessment
+workflow and its isolated persistence.
 
 Temporarily add the account whose latest completed assessment should become
 the fixed fixture to `.env.server`:

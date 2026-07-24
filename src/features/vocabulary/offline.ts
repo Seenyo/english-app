@@ -3,6 +3,7 @@ import type {
   VocabularyOperation,
   VocabularySession,
 } from '@shared/vocabulary/contracts';
+import { isDeveloperPreview } from '@/features/developer-preview/runtime';
 
 export type QueuedVocabularyOperation = {
   id: string;
@@ -150,6 +151,7 @@ function sessionKey(userId: string, kind: VocabularyKind) {
 let databasePromise: Promise<IDBDatabase | null> | null = null;
 
 function openDatabase(): Promise<IDBDatabase | null> {
+  if (isDeveloperPreview) return Promise.resolve(null);
   if (typeof indexedDB === 'undefined') return Promise.resolve(null);
   databasePromise ??= new Promise((resolve) => {
     const request = indexedDB.open(databaseName, databaseVersion);

@@ -13,6 +13,10 @@ import type {
 } from '@shared/learning/contracts';
 import { useAssessment } from '@/features/assessment';
 import { useAuth } from '@/features/auth';
+import {
+  developerPreviewLearningOverview,
+  isDeveloperPreview,
+} from '@/features/developer-preview';
 import { getLearningOverview, retryLatestAnalysis, updatePersona } from './api';
 import { LearningContext, type LearningContextValue } from './LearningContext';
 
@@ -22,8 +26,12 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   const sessionRef = useRef(session);
   const loadedUserId = useRef<string | null>(null);
   const lastCompletedAttempt = useRef<string | null>(null);
-  const [overview, setOverview] = useState<LearningOverview | null>(null);
-  const [isLoading, setIsLoading] = useState(Boolean(session));
+  const [overview, setOverview] = useState<LearningOverview | null>(
+    isDeveloperPreview ? developerPreviewLearningOverview : null,
+  );
+  const [isLoading, setIsLoading] = useState(
+    isDeveloperPreview ? false : Boolean(session),
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +40,12 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   const refresh = useCallback(async (showLoading = true) => {
+    if (isDeveloperPreview) {
+      setOverview(developerPreviewLearningOverview);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
     const current = sessionRef.current;
     if (!current) {
       setOverview(null);
@@ -92,6 +106,9 @@ export function LearningProvider({ children }: { children: ReactNode }) {
         expectedVersion: number,
         userAuthored: PersonaUserAuthored,
       ): Promise<LearnerPersona> {
+        if (isDeveloperPreview) {
+          throw new Error('Developer Previewではプロフィールを保存しません。');
+        }
         const current = sessionRef.current;
         if (!current) throw new Error('ログインが必要です。');
         setIsSaving(true);
@@ -114,6 +131,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
         }
       },
       async retryAnalysis() {
+        if (isDeveloperPreview) return;
         const current = sessionRef.current;
         if (!current) return;
         setIsSaving(true);

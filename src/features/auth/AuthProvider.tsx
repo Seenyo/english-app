@@ -1,16 +1,25 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { isConfigured } from '@/config/env';
+import {
+  developerPreviewSession,
+  isDeveloperPreview,
+} from '@/features/developer-preview';
 import { supabase } from '@/lib/supabase';
 import { AuthContext, type AuthContextValue } from './AuthContext';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(isConfigured);
+  const [session, setSession] = useState<Session | null>(
+    isDeveloperPreview ? developerPreviewSession : null,
+  );
+  const [isLoading, setIsLoading] = useState(
+    isDeveloperPreview ? false : isConfigured,
+  );
   const [error, setError] = useState<string | null>(null);
 
   // Seed from storage, then track changes. Treat INITIAL_SESSION as authoritative.
   useEffect(() => {
+    if (isDeveloperPreview) return;
     if (!supabase) return;
 
     supabase.auth
@@ -36,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signInWithGoogle() {
+    if (isDeveloperPreview) return;
     if (!supabase) return;
     setError(null);
     try {
@@ -51,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
+    if (isDeveloperPreview) return;
     if (!supabase) return;
     // 'local' — the default 'global' would sign out every device.
     await supabase.auth.signOut({ scope: 'local' });

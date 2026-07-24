@@ -24,7 +24,9 @@ ChatGPT Plus/Pro login. No OpenAI API key is used.
 - Immutable Japanese feedback reports with all 25 answers
 - Four-way vocabulary/idiom mastery check with touch-first swipe cards
 - Offline-first, batched progress saving with one-step undo and 100-card checkpoints
-- Target 1900 sections, self-reported section skipping, and category-based rechecks
+- 100-item word and idiom sections for mastery checks and memorization
+- Section-scoped memorization with automatic card selection
+- Two-choice active recall, same-session retries, and hidden adaptive scheduling
 
 ## Architecture
 
@@ -53,6 +55,17 @@ npm run dev:ai
 ```
 
 Open <http://localhost:5173>. The AI bridge binds only to `127.0.0.1`.
+
+For instant, local-only UI checks with deterministic fixtures, use:
+
+```bash
+npm run dev:preview
+```
+
+Developer Preview bypasses login and onboarding, never calls Supabase or Codex,
+and does not persist application data. It currently covers the completed Home
+state and vocabulary progress. Add future feature fixtures under
+`src/features/developer-preview`.
 
 To run the fixed-question debug flow, start the bridge with:
 
@@ -93,5 +106,7 @@ before GitHub Pages deployment.
 - [`supabase/migrations/20260719071503_fix_vocabulary_session_completion_outcomes.sql`](./supabase/migrations/20260719071503_fix_vocabulary_session_completion_outcomes.sql) — completed outcome for all-skipped vocabulary sessions
 - [`supabase/migrations/20260719090126_index_vocabulary_session_counts.sql`](./supabase/migrations/20260719090126_index_vocabulary_session_counts.sql) — indexed session summary counts
 - [`supabase/migrations/20260719130040_save_assessment_answers_atomically.sql`](./supabase/migrations/20260719130040_save_assessment_answers_atomically.sql) — stale-round-safe live and dry-run answer writes
+- [`supabase/migrations/20260724035618_vocabulary_memory_sessions.sql`](./supabase/migrations/20260724035618_vocabulary_memory_sessions.sql) — adaptive memorization progress, sessions, and atomic answers
+- [`supabase/migrations/20260724071300_vocabulary_sections.sql`](./supabase/migrations/20260724071300_vocabulary_sections.sql) — section-scoped word and idiom sessions
 - [`server/vocabulary`](./server/vocabulary) — server-only vocabulary repository and source parsers
-- [`src/features/vocabulary`](./src/features/vocabulary) — setup, offline queue, swipe interaction, and progress UI
+- [`src/features/vocabulary`](./src/features/vocabulary) — setup, offline queue, swipe classification, and progress UI

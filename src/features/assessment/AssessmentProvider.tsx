@@ -14,6 +14,10 @@ import type {
 } from '@shared/assessment/contracts';
 import { useAuth } from '@/features/auth';
 import {
+  developerPreviewAssessmentState,
+  isDeveloperPreview,
+} from '@/features/developer-preview';
+import {
   abandonDryRun,
   completeAssessmentRound,
   getAssessmentSnapshot,
@@ -31,9 +35,15 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
   const sessionRef = useRef(session);
   const loadedUserId = useRef<string | null>(null);
-  const [state, setState] = useState<AssessmentState | null>(null);
-  const [mode, setMode] = useState<AssessmentMode | null>(null);
-  const [isLoading, setIsLoading] = useState(Boolean(session));
+  const [state, setState] = useState<AssessmentState | null>(
+    isDeveloperPreview ? developerPreviewAssessmentState : null,
+  );
+  const [mode, setMode] = useState<AssessmentMode | null>(
+    isDeveloperPreview ? 'live' : null,
+  );
+  const [isLoading, setIsLoading] = useState(
+    isDeveloperPreview ? false : Boolean(session),
+  );
   const [isWorking, setIsWorking] = useState(false);
   const [activity, setActivity] = useState<AssessmentActivity>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +53,13 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
   }, [session]);
 
   const loadState = useCallback(async (showLoading: boolean) => {
+    if (isDeveloperPreview) {
+      setMode('live');
+      setState(developerPreviewAssessmentState);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
     const currentSession = sessionRef.current;
     if (!currentSession) {
       setState(null);
@@ -98,6 +115,11 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
       clearError: () => setError(null),
       refresh,
       async start(profile: LearnerProfile) {
+        if (isDeveloperPreview) {
+          void profile;
+          setState(developerPreviewAssessmentState);
+          return;
+        }
         const currentSession = sessionRef.current;
         if (!currentSession) return;
         setIsWorking(true);
@@ -128,6 +150,13 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
         questionId: string,
         answer: AnswerSelection,
       ) {
+        if (isDeveloperPreview) {
+          void attemptId;
+          void round;
+          void questionId;
+          void answer;
+          return;
+        }
         const currentSession = sessionRef.current;
         if (!currentSession) return;
         setError(null);
@@ -146,6 +175,12 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
         }
       },
       async completeRound(attemptId: string, round: 1 | 2 | 3) {
+        if (isDeveloperPreview) {
+          void attemptId;
+          void round;
+          setState(developerPreviewAssessmentState);
+          return;
+        }
         const currentSession = sessionRef.current;
         if (!currentSession) return;
         setIsWorking(true);
@@ -175,6 +210,11 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
         }
       },
       async retry(attemptId: string) {
+        if (isDeveloperPreview) {
+          void attemptId;
+          setState(developerPreviewAssessmentState);
+          return;
+        }
         const currentSession = sessionRef.current;
         if (!currentSession) return;
         setIsWorking(true);
@@ -200,6 +240,10 @@ export function AssessmentProvider({ children }: { children: ReactNode }) {
         }
       },
       async abandon() {
+        if (isDeveloperPreview) {
+          setState(developerPreviewAssessmentState);
+          return;
+        }
         const currentSession = sessionRef.current;
         if (!currentSession || mode !== 'dry-run') return;
         setIsWorking(true);

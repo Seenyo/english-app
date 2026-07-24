@@ -7,17 +7,27 @@ import {
   type VocabularyActivityKey,
   type VocabularyScopeKey,
 } from '@/features/vocabulary';
+import { VocabularyHeaderIllustration } from '@/features/vocabulary/components/VocabularyIllustrations';
 
 type CheckScope = Extract<VocabularyScopeKey, 'words' | 'idioms'>;
+type SectionActivity = Extract<VocabularyActivityKey, 'check' | 'memorize'>;
+type OpenSectionScope = {
+  activity: SectionActivity;
+  scope: CheckScope;
+};
 
 export function Vocabulary() {
   const [openActivity, setOpenActivity] =
     useState<VocabularyActivityKey | null>(null);
-  const [openCheckScope, setOpenCheckScope] = useState<CheckScope | null>(null);
+  const [openSectionScope, setOpenSectionScope] =
+    useState<OpenSectionScope | null>(null);
+  const [openSectionPicker, setOpenSectionPicker] =
+    useState<OpenSectionScope | null>(null);
 
   const toggleActivity = (activity: VocabularyActivityKey) => {
     setOpenActivity((current) => (current === activity ? null : activity));
-    if (activity !== 'check') setOpenCheckScope(null);
+    setOpenSectionScope(null);
+    setOpenSectionPicker(null);
   };
 
   return (
@@ -27,24 +37,19 @@ export function Vocabulary() {
       </Link>
 
       <header className="vocabulary-header">
-        <div>
-          <p className="eyebrow">Vocabulary notebook</p>
-          <h1>単語・熟語帳</h1>
-          <p>今の気分や進み具合に合わせて、取り組み方を選びましょう。</p>
-        </div>
-        <div className="vocabulary-header-mark" aria-hidden="true">
-          <span>Aa</span>
-          <small>
-            WORDS
-            <br />
-            &amp; IDIOMS
-          </small>
+        <h1>単語・熟語帳</h1>
+        <div className="vocabulary-header-mark">
+          <VocabularyHeaderIllustration />
         </div>
       </header>
 
       <section className="vocabulary-activity-list" aria-label="学習方法">
         {vocabularyActivities.map((activity) => {
           const isOpen = openActivity === activity.key;
+          const sectionActivity: SectionActivity | null =
+            activity.key === 'check' || activity.key === 'memorize'
+              ? activity.key
+              : null;
           return (
             <article
               className={`vocabulary-accordion vocabulary-tone-${activity.tone}`}
@@ -61,7 +66,6 @@ export function Vocabulary() {
                   {activity.symbol}
                 </span>
                 <span className="vocabulary-activity-copy">
-                  <small>{activity.eyebrow}</small>
                   <strong>{activity.label}</strong>
                   <span>{activity.description}</span>
                 </span>
@@ -75,15 +79,29 @@ export function Vocabulary() {
                   className="vocabulary-accordion-body"
                   id={`activity-${activity.key}`}
                 >
-                  <p className="vocabulary-choice-label">
-                    {activity.key === 'check'
-                      ? 'チェックするものを選ぶ'
-                      : '学ぶものを選ぶ'}
-                  </p>
-                  {activity.key === 'check' ? (
-                    <CheckScopeChoices
-                      openScope={openCheckScope}
-                      onToggle={setOpenCheckScope}
+                  {sectionActivity ? (
+                    <SectionScopeChoices
+                      activity={sectionActivity}
+                      openScope={
+                        openSectionScope?.activity === sectionActivity
+                          ? openSectionScope.scope
+                          : null
+                      }
+                      onToggle={(scope) =>
+                        setOpenSectionScope(
+                          scope ? { activity: sectionActivity, scope } : null,
+                        )
+                      }
+                      openSectionPicker={
+                        openSectionPicker?.activity === sectionActivity
+                          ? openSectionPicker.scope
+                          : null
+                      }
+                      onToggleSectionPicker={(scope) =>
+                        setOpenSectionPicker(
+                          scope ? { activity: sectionActivity, scope } : null,
+                        )
+                      }
                     />
                   ) : (
                     <div className="vocabulary-scope-grid">
@@ -109,18 +127,27 @@ export function Vocabulary() {
   );
 }
 
-function CheckScopeChoices({
+function SectionScopeChoices({
+  activity,
   openScope,
   onToggle,
+  openSectionPicker,
+  onToggleSectionPicker,
 }: {
+  activity: SectionActivity;
   openScope: CheckScope | null;
   onToggle: (scope: CheckScope | null) => void;
+  openSectionPicker: CheckScope | null;
+  onToggleSectionPicker: (scope: CheckScope | null) => void;
 }) {
   const { overview, isLoading, error } = useVocabulary();
+
   return (
     <div className="check-scope-list">
       {(['words', 'idioms'] as const).map((scope) => {
         const isOpen = openScope === scope;
+        const isSectionPickerOpen = openSectionPicker === scope;
+        const sectionCount = scope === 'words' ? 19 : 17;
         const kind = scope === 'words' ? 'word' : 'idiom';
         const counts = scope === 'words' ? overview?.words : overview?.idioms;
         const resumable = overview?.resumableSessions.some(
@@ -135,55 +162,104 @@ function CheckScopeChoices({
             <button
               aria-expanded={isOpen}
               className="check-scope-trigger"
-              onClick={() => onToggle(isOpen ? null : scope)}
+              onClick={() => {
+                onToggle(isOpen ? null : scope);
+                if (isOpen) onToggleSectionPicker(null);
+              }}
               type="button"
             >
               <span>{vocabularyScopeLabels[scope]}</span>
               <b aria-hidden="true">{isOpen ? '−' : '+'}</b>
             </button>
             {isOpen && (
-              <div className="check-start-options">
-                {isLoading && (
-                  <p className="check-option-loading">進捗を確認中…</p>
+              <>
+                {activity === 'check' && (
+                  <div className="check-start-options">
+                    {!isLoading && canContinue && (
+                      <Link
+                        className="check-start-option"
+                        to={`/study/vocabulary/check/${scope}/setup?mode=continue`}
+                      >
+                        <strong>続きから</strong>
+                        <b aria-hidden="true">→</b>
+                      </Link>
+                    )}
+                    <Link
+                      className="check-start-option"
+                      to={`/study/vocabulary/check/${scope}/setup?mode=restart`}
+                    >
+                      <strong>初めから</strong>
+                      <b aria-hidden="true">→</b>
+                    </Link>
+                    {!isLoading && canRecheck && (
+                      <Link
+                        className="check-start-option"
+                        to={`/study/vocabulary/check/${scope}/setup?mode=recheck`}
+                      >
+                        <strong>再チェック</strong>
+                        <b aria-hidden="true">↻</b>
+                      </Link>
+                    )}
+                    <button
+                      aria-expanded={isSectionPickerOpen}
+                      className="check-start-option"
+                      onClick={() =>
+                        onToggleSectionPicker(
+                          isSectionPickerOpen ? null : scope,
+                        )
+                      }
+                      type="button"
+                    >
+                      <strong>セクションごと</strong>
+                      <b aria-hidden="true">
+                        {isSectionPickerOpen ? '−' : '+'}
+                      </b>
+                    </button>
+                    {error && <p className="check-option-error">{error}</p>}
+                  </div>
                 )}
-                {!isLoading && canContinue && (
-                  <Link
-                    className="check-start-option"
-                    to={`/study/vocabulary/check/${scope}/setup?mode=continue`}
-                  >
-                    <span>
-                      <strong>続きから</strong>
-                      <small>次の未判定項目から再開</small>
-                    </span>
-                    <em aria-hidden="true">→</em>
-                  </Link>
+                {(activity === 'memorize' || isSectionPickerOpen) && (
+                  <SectionGrid
+                    activity={activity}
+                    scope={scope}
+                    sectionCount={sectionCount}
+                  />
                 )}
-                <Link
-                  className="check-start-option"
-                  to={`/study/vocabulary/check/${scope}/setup?mode=restart`}
-                >
-                  <span>
-                    <strong>{scope === 'words' ? '初めから' : 'すべて'}</strong>
-                    <small>番号順に最初からチェック</small>
-                  </span>
-                  <em aria-hidden="true">→</em>
-                </Link>
-                {!isLoading && canRecheck && (
-                  <Link
-                    className="check-start-option"
-                    to={`/study/vocabulary/check/${scope}/setup?mode=recheck`}
-                  >
-                    <span>
-                      <strong>再チェック</strong>
-                      <small>分類済みの項目を選んで確認</small>
-                    </span>
-                    <em aria-hidden="true">↻</em>
-                  </Link>
-                )}
-                {error && <p className="check-option-error">{error}</p>}
-              </div>
+              </>
             )}
           </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SectionGrid({
+  activity,
+  scope,
+  sectionCount,
+}: {
+  activity: SectionActivity;
+  scope: CheckScope;
+  sectionCount: number;
+}) {
+  return (
+    <div className="vocabulary-section-grid">
+      {Array.from({ length: sectionCount }, (_, index) => {
+        const section = index + 1;
+        const start = index * 100 + 1;
+        const end = scope === 'idioms' && section === 17 ? 1684 : section * 100;
+        const target =
+          activity === 'check'
+            ? `/study/vocabulary/check/${scope}/setup?section=${section}`
+            : `/study/vocabulary/memorize/${scope}/${section}`;
+        return (
+          <Link className="vocabulary-section-link" key={section} to={target}>
+            <strong>{section}</strong>
+            <small>
+              {start}–{end}
+            </small>
+          </Link>
         );
       })}
     </div>

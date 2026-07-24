@@ -4,6 +4,7 @@ import { NavigationIcon } from '@/components/ui/NavigationIcon';
 import { useAssessment } from '@/features/assessment';
 import { DryRunBanner } from '@/features/assessment/components/DryRunBanner';
 import { useAuth, UserMenu } from '@/features/auth';
+import { isDeveloperPreview, PreviewBadge } from '@/features/developer-preview';
 import { cn } from '@/lib/utils';
 
 type LayoutProps = {
@@ -27,7 +28,11 @@ export function Layout({ children }: LayoutProps) {
               <span aria-hidden="true">a</span>
               <strong>everyday</strong>
             </Link>
-            {session && mode === 'dry-run' && <DryRunBanner compact />}
+            {isDeveloperPreview ? (
+              <PreviewBadge compact />
+            ) : (
+              session && mode === 'dry-run' && <DryRunBanner compact />
+            )}
             <nav
               aria-label="メインナビゲーション"
               className="main-navigation flex items-center gap-3 text-sm font-bold sm:gap-6"
@@ -57,7 +62,7 @@ export function Layout({ children }: LayoutProps) {
                     <NavigationIcon name="study" />
                     <span className="sr-only">学習</span>
                   </NavLink>
-                  {mode === 'live' && (
+                  {mode === 'live' && !isDeveloperPreview && (
                     <NavLink
                       to="/persona"
                       aria-label="プロフィール"
@@ -70,7 +75,7 @@ export function Layout({ children }: LayoutProps) {
                       <span className="sr-only">プロフィール</span>
                     </NavLink>
                   )}
-                  <UserMenu />
+                  {!isDeveloperPreview && <UserMenu />}
                 </>
               ) : (
                 !isLoading &&
@@ -91,6 +96,11 @@ export function Layout({ children }: LayoutProps) {
       {!isSwipeSession && session && mode === 'dry-run' && (
         <div className="dry-run-ribbon">
           DRY RUN ・ 固定された25問を使用 ・ 現在のCEFRには反映されません
+        </div>
+      )}
+      {!isSwipeSession && isDeveloperPreview && (
+        <div className="preview-ribbon">
+          DEVELOPER PREVIEW ・ 固定データを使用 ・ Supabase/Codexへ保存しません
         </div>
       )}
       <main

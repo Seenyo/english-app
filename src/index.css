@@ -1006,6 +1006,49 @@ label {
   transform: rotate(-1.5deg);
 }
 
+.preview-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 2px solid #173a3f;
+  border-radius: 999px;
+  background: #ffe0bf;
+  padding: 0.35rem 0.7rem;
+  color: #173a3f;
+  font-size: 0.68rem;
+  font-weight: 850;
+  box-shadow: 2px 2px 0 #173a3f;
+}
+
+.preview-badge strong {
+  font-family: var(--font-utility);
+  font-weight: 950;
+  letter-spacing: 0.11em;
+}
+
+.preview-badge-compact {
+  margin-inline: auto;
+  transform: rotate(1.5deg);
+}
+
+.preview-ribbon {
+  border-bottom: 2px solid #173a3f;
+  background: repeating-linear-gradient(
+    -45deg,
+    #ffe0bf,
+    #ffe0bf 12px,
+    #fff1df 12px,
+    #fff1df 24px
+  );
+  padding: 0.38rem 1rem;
+  color: #7a421f;
+  font-family: var(--font-utility);
+  font-size: 0.67rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
 .dry-run-ribbon {
   border-bottom: 2px solid #173a3f;
   background: repeating-linear-gradient(
