@@ -439,6 +439,8 @@ label {
 }
 
 .answer-option {
+  width: 100%;
+  appearance: none;
   display: flex;
   min-height: 3.6rem;
   cursor: pointer;
@@ -449,8 +451,10 @@ label {
   background: white;
   padding: 0.65rem 0.85rem;
   color: #173a3f;
+  font-family: inherit;
   font-size: 0.95rem;
   font-weight: 800;
+  text-align: left;
   box-shadow: 0 3px 0 #173a3f;
   touch-action: manipulation;
   user-select: none;
@@ -460,13 +464,15 @@ label {
     box-shadow 120ms ease;
 }
 
-.answer-option:hover {
-  transform: translateY(-2px);
-  background: #e4f7fa;
-  box-shadow: 0 5px 0 #173a3f;
+@media (hover: hover) and (pointer: fine) {
+  .answer-option:hover {
+    transform: translateY(-2px);
+    background: #e4f7fa;
+    box-shadow: 0 5px 0 #173a3f;
+  }
 }
 
-.answer-option:has(input:focus-visible) {
+.answer-option:focus-visible {
   outline: 4px solid #ff6b5f;
   outline-offset: 3px;
 }

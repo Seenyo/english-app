@@ -2,7 +2,7 @@ import type {
   AnswerSelection,
   PublicAssessmentQuestion,
 } from '@shared/assessment/contracts';
-import { cn } from '@/lib/utils';
+import { cn } from '../../../lib/utils';
 
 const categoryLabels = {
   vocabulary: 'Vocabulary',
@@ -42,51 +42,45 @@ export function QuestionCard({
         {renderStem(question.stem)}
       </h1>
 
-      <fieldset className="mt-8 grid gap-3" disabled={disabled}>
+      <fieldset
+        className="mt-8 grid gap-3"
+        disabled={disabled}
+        key={question.id}
+      >
         <legend className="sr-only">答えを1つ選択してください</legend>
         {question.options.map((option) => {
           const selected =
             answer?.kind === 'option' && answer.optionId === option.id;
           return (
-            <label
+            <button
+              aria-pressed={selected}
               className={cn(
                 'answer-option',
                 selected && 'answer-option-selected',
               )}
               key={option.id}
+              onClick={() =>
+                onAnswer({ kind: 'option', optionId: option.id })
+              }
+              type="button"
             >
-              <input
-                checked={selected}
-                className="sr-only"
-                name={`answer-${question.id}`}
-                onChange={() =>
-                  onAnswer({ kind: 'option', optionId: option.id })
-                }
-                type="radio"
-                value={option.id}
-              />
               <span className="answer-letter">{option.id}</span>
               <span>{option.text}</span>
-            </label>
+            </button>
           );
         })}
-        <label
+        <button
+          aria-pressed={answer?.kind === 'unknown'}
           className={cn(
             'answer-option answer-unknown',
             answer?.kind === 'unknown' && 'answer-option-selected',
           )}
+          onClick={() => onAnswer({ kind: 'unknown' })}
+          type="button"
         >
-          <input
-            checked={answer?.kind === 'unknown'}
-            className="sr-only"
-            name={`answer-${question.id}`}
-            onChange={() => onAnswer({ kind: 'unknown' })}
-            type="radio"
-            value="unknown"
-          />
           <span className="answer-letter">?</span>
           <span>わからない</span>
-        </label>
+        </button>
       </fieldset>
     </section>
   );
