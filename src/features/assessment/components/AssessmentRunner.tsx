@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type {
   AnswerSelection,
   AssessmentState,
@@ -26,6 +26,12 @@ export function AssessmentRunner({
   const [saving, setSaving] = useState(false);
   const saveLock = useRef(false);
   const question = state.questions[questionIndex];
+  const questionId = question?.id ?? null;
+
+  useEffect(() => {
+    saveLock.current = false;
+    setSaving(false);
+  }, [questionId]);
 
   if (!question) return null;
 
@@ -35,17 +41,22 @@ export function AssessmentRunner({
     setSaving(true);
     const answeredIndex = questionIndex;
     const answeredQuestionId = question.id;
+    let advanced = false;
     try {
       await onSaveAnswer(answeredQuestionId, answer);
       const isLast = answeredIndex === state.questions.length - 1;
       if (!isLast) {
+        advanced = true;
         setQuestionIndex(answeredIndex + 1);
+        return;
       }
     } catch {
       // The assessment provider displays the actionable error above the card.
     } finally {
-      saveLock.current = false;
-      setSaving(false);
+      if (!advanced) {
+        saveLock.current = false;
+        setSaving(false);
+      }
     }
   }
 
