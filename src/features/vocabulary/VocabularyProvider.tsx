@@ -181,17 +181,19 @@ export function VocabularyProvider({ children }: { children: ReactNode }) {
       },
       async startMemorySession(request: StartVocabularyMemoryRequest) {
         if (isDeveloperPreview) {
+          const section =
+            request.section ??
+            (previewMemoryState.current?.kind === request.kind
+              ? previewMemoryState.current.section
+              : 1);
           let current = previewMemoryState.current;
           if (
             !current ||
             current.kind !== request.kind ||
-            current.section !== request.section ||
+            current.section !== section ||
             toDeveloperPreviewMemorySession(current).status === 'completed'
           ) {
-            current = createDeveloperPreviewMemoryState(
-              request.kind,
-              request.section,
-            );
+            current = createDeveloperPreviewMemoryState(request.kind, section);
             previewMemoryState.current = current;
           }
           setMemoryOverview((overview) =>

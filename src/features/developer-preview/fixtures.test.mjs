@@ -14,6 +14,12 @@ test('developer preview boots into a completed learner state', () => {
   assert.equal(developerPreviewAssessmentState.status, 'completed');
   assert.equal(developerPreviewVocabularyOverview.words.total, 1900);
   assert.equal(developerPreviewVocabularyOverview.idioms.total, 1684);
+  assert.equal(
+    developerPreviewVocabularyOverview.sectionMastery.filter(
+      (section) => section.isMastered,
+    ).length,
+    2,
+  );
   assert.equal(developerPreviewMemoryOverview.recommendedCount, 10);
 });
 

@@ -5,6 +5,7 @@ export {
   vocabularyScopeLabels,
 } from './catalog';
 export { canContinueVocabularyCheck } from './continuation';
+export { isVocabularySectionMastered } from './sectionMastery';
 export type {
   VocabularyActivity,
   VocabularyActivityKey,

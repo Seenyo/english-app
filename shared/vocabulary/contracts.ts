@@ -31,6 +31,19 @@ export const vocabularyCountSchema = z.object({
 });
 export type VocabularyCount = z.infer<typeof vocabularyCountSchema>;
 
+export const vocabularySectionMasterySchema = z
+  .object({
+    kind: vocabularyKindSchema,
+    section: vocabularySectionSchema,
+    total: z.number().int().positive(),
+    mastered: z.number().int().nonnegative(),
+    isMastered: z.boolean(),
+  })
+  .refine((value) => value.mastered <= value.total);
+export type VocabularySectionMastery = z.infer<
+  typeof vocabularySectionMasterySchema
+>;
+
 export const resumableVocabularySessionSchema = z.object({
   id: z.string().uuid(),
   kind: vocabularyKindSchema,
@@ -43,6 +56,7 @@ export const resumableVocabularySessionSchema = z.object({
 export const vocabularyOverviewSchema = z.object({
   words: vocabularyCountSchema,
   idioms: vocabularyCountSchema,
+  sectionMastery: z.array(vocabularySectionMasterySchema).max(36).default([]),
   lastCheckedAt: z.string().datetime({ offset: true }).nullable(),
   resumableSessions: z.array(resumableVocabularySessionSchema).max(2),
 });
@@ -113,9 +127,16 @@ export type VocabularyMemoryCard = z.infer<typeof vocabularyMemoryCardSchema>;
 export const startVocabularyMemoryRequestSchema = z
   .object({
     kind: vocabularyKindSchema,
-    section: vocabularySectionSchema,
+    section: vocabularySectionSchema.optional(),
   })
-  .superRefine(validateVocabularySection);
+  .superRefine((value, context) => {
+    if (value.section !== undefined) {
+      validateVocabularySection(
+        { kind: value.kind, section: value.section },
+        context,
+      );
+    }
+  });
 export type StartVocabularyMemoryRequest = z.infer<
   typeof startVocabularyMemoryRequestSchema
 >;

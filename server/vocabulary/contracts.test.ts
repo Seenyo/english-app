@@ -88,6 +88,9 @@ test('validates the compact memorization session and idempotent answer payload',
     }).section,
     17,
   );
+  assert.deepEqual(startVocabularyMemoryRequestSchema.parse({ kind: 'word' }), {
+    kind: 'word',
+  });
   assert.equal(
     startVocabularySessionRequestSchema.parse({
       kind: 'word',

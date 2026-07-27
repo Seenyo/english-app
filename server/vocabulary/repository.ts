@@ -80,13 +80,35 @@ export class VocabularyRepository {
   }
 
   async getOverview(userId: string): Promise<VocabularyOverview> {
-    const { data, error } = await this.database.rpc(
-      'get_vocabulary_check_overview',
-      { p_user_id: userId },
+    const [overviewResult, sectionMasteryResult] = await Promise.all([
+      this.database.rpc('get_vocabulary_check_overview', {
+        p_user_id: userId,
+      }),
+      this.database.rpc('get_vocabulary_section_mastery', {
+        p_user_id: userId,
+      }),
+    ]);
+    if (overviewResult.error) {
+      throw repositoryError(
+        'Could not load vocabulary progress.',
+        overviewResult.error,
+      );
+    }
+    if (sectionMasteryResult.error) {
+      throw repositoryError(
+        'Could not load vocabulary section progress.',
+        sectionMasteryResult.error,
+      );
+    }
+    const overview = overviewResult.data;
+    return vocabularyOverviewSchema.parse(
+      overview && typeof overview === 'object' && !Array.isArray(overview)
+        ? {
+            ...overview,
+            sectionMastery: sectionMasteryResult.data,
+          }
+        : overview,
     );
-    if (error)
-      throw repositoryError('Could not load vocabulary progress.', error);
-    return vocabularyOverviewSchema.parse(data);
   }
 
   async startSession(
@@ -246,14 +268,20 @@ export class VocabularyRepository {
     userId: string,
     request: StartVocabularyMemoryRequest,
   ): Promise<VocabularyMemorySession> {
-    const { data, error } = await this.database.rpc(
-      'start_vocabulary_memory_section_session',
-      {
-        p_user_id: userId,
-        p_kind: request.kind,
-        p_section: request.section,
-      },
-    );
+    const { data, error } =
+      request.section === undefined
+        ? await this.database.rpc(
+            'start_vocabulary_memory_continuation_session',
+            {
+              p_user_id: userId,
+              p_kind: request.kind,
+            },
+          )
+        : await this.database.rpc('start_vocabulary_memory_section_session', {
+            p_user_id: userId,
+            p_kind: request.kind,
+            p_section: request.section,
+          });
     if (error?.code === '23505') {
       const activeSessionId = await this.findActiveMemorySessionId(userId);
       if (activeSessionId) {

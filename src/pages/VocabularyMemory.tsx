@@ -13,6 +13,7 @@ export function VocabularyMemory() {
   const { startMemorySession, answerMemoryCard } = useVocabulary();
   const kind: VocabularyKind | null =
     scope === 'words' ? 'word' : scope === 'idioms' ? 'idiom' : null;
+  const isContinuation = sectionParam === 'continue';
   const section = parseSection(sectionParam, kind);
   const [session, setSession] = useState<VocabularyMemorySession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -26,12 +27,12 @@ export function VocabularyMemory() {
   const startMemorySessionRef = useRef(startMemorySession);
 
   useEffect(() => {
-    if (!kind || !section) return;
+    if (!kind || (!isContinuation && !section)) return;
     let active = true;
     setIsLoading(true);
     setError(null);
     void startMemorySessionRef
-      .current({ kind, section })
+      .current({ kind, ...(section ? { section } : {}) })
       .then((nextSession) => {
         if (!active) return;
         setSession(nextSession);
@@ -47,7 +48,7 @@ export function VocabularyMemory() {
     return () => {
       active = false;
     };
-  }, [kind, section]);
+  }, [isContinuation, kind, section]);
 
   const answer = async (result: VocabularyMemoryResult) => {
     const card = session?.currentCard;
@@ -77,7 +78,7 @@ export function VocabularyMemory() {
     }
   };
 
-  if (!kind || !section) {
+  if (!kind || (!isContinuation && !section)) {
     return <Navigate replace to="/study/vocabulary" />;
   }
 
