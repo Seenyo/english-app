@@ -42,6 +42,12 @@ type ItemRow = {
   part: number | null;
 };
 
+type ExampleRow = {
+  position: number;
+  english: string;
+  japanese: string;
+};
+
 type MemorySessionRow = {
   id: string;
   kind: VocabularyKind;
@@ -301,8 +307,13 @@ export class VocabularyRepository {
 
     const currentItemId =
       row.status === 'active' ? row.queue_ids[row.current_index] : undefined;
-    const items =
-      currentItemId === undefined ? [] : await this.loadItems([currentItemId]);
+    const [items, examples] =
+      currentItemId === undefined
+        ? [[], []]
+        : await Promise.all([
+            this.loadItems([currentItemId]),
+            this.loadExamples(currentItemId),
+          ]);
     const currentItem = items[0];
     if (currentItemId !== undefined && !currentItem) {
       throw new VocabularyRepositoryError(
@@ -319,7 +330,7 @@ export class VocabularyRepository {
       position: row.current_index,
       total: row.queue_ids.length,
       initialCount: row.initial_item_ids.length,
-      currentCard: currentItem ? mapMemoryCard(currentItem) : null,
+      currentCard: currentItem ? mapMemoryCard(currentItem, examples) : null,
       rememberedCount: row.remembered_item_ids.length,
       againCount: row.again_item_ids.length,
     });
@@ -395,6 +406,24 @@ export class VocabularyRepository {
     return (data as ItemRow[]) ?? [];
   }
 
+  private async loadExamples(itemId: number): Promise<ExampleRow[]> {
+    const { data, error } = await this.database
+      .from('vocabulary_examples')
+      .select('position, english, japanese')
+      .eq('item_id', itemId)
+      .order('position', { ascending: true });
+    if (error)
+      throw repositoryError('Could not load vocabulary examples.', error);
+    const examples = (data as ExampleRow[] | null) ?? [];
+    if (examples.length !== 3) {
+      throw new VocabularyRepositoryError(
+        `Vocabulary item ${itemId} does not have three examples.`,
+        'vocabulary_examples_incomplete',
+      );
+    }
+    return examples;
+  }
+
   private async loadClassifications(userId: string, ids: number[]) {
     if (ids.length === 0) return [];
     const { data, error } = await this.database
@@ -452,7 +481,7 @@ function mapCard(
   };
 }
 
-function mapMemoryCard(item: ItemRow) {
+function mapMemoryCard(item: ItemRow, examples: ExampleRow[]) {
   return {
     id: item.id,
     kind: item.kind,
@@ -461,6 +490,7 @@ function mapMemoryCard(item: ItemRow) {
     meaningJa: item.meaning_ja,
     section: item.section,
     part: item.part,
+    examples: examples.map(({ english, japanese }) => ({ english, japanese })),
   };
 }
 
@@ -494,6 +524,7 @@ const vocabularyRepositoryDomainCodes = [
   'memory_attempt_limit_reached',
   'invalid_memory_result',
   'invalid_memory_response_time',
+  'vocabulary_examples_incomplete',
 ] as const;
 
 export function resolveVocabularyRepositoryCode(error: {

@@ -4,7 +4,9 @@ const reasoningEfforts = ['minimal', 'low', 'medium', 'high', 'xhigh'] as const;
 const assessmentModes = ['live', 'dry-run'] as const;
 
 const environmentSchema = z.object({
-  AI_BRIDGE_PORT: z.coerce.number().int().min(1).max(65535).default(8787),
+  AI_BRIDGE_HOST: z.string().min(1).default('127.0.0.1'),
+  AI_BRIDGE_PORT: z.coerce.number().int().min(1).max(65535).optional(),
+  PORT: z.coerce.number().int().min(1).max(65535).optional(),
   AI_ALLOWED_ORIGINS: z.string().min(1),
   AI_ALLOWED_EMAILS: z.string().min(1),
   ASSESSMENT_MODE: z.enum(assessmentModes).default('live'),
@@ -22,6 +24,7 @@ const environmentSchema = z.object({
 });
 
 export type ServerConfig = {
+  host: string;
   port: number;
   allowedOrigins: ReadonlySet<string>;
   allowedEmails: ReadonlySet<string>;
@@ -46,7 +49,8 @@ export function readServerConfig(
   }
 
   return {
-    port: parsed.data.AI_BRIDGE_PORT,
+    host: parsed.data.AI_BRIDGE_HOST,
+    port: parsed.data.PORT ?? parsed.data.AI_BRIDGE_PORT ?? 8787,
     allowedOrigins: parseCsv(parsed.data.AI_ALLOWED_ORIGINS),
     allowedEmails: parseCsv(parsed.data.AI_ALLOWED_EMAILS, true),
     repairAttempts: parsed.data.AI_GENERATION_REPAIR_ATTEMPTS,

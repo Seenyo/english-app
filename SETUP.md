@@ -278,3 +278,11 @@ The static frontend still deploys from `main`. GitHub Actions requires only:
 Local development defaults to `http://127.0.0.1:8787`. Production builds do
 not fall back to localhost, and CI rejects a missing or non-HTTPS bridge URL.
 The bridge itself is never deployed to GitHub Pages.
+
+## 12. Cloud Run bridge
+
+The production bridge can run in Google Cloud Run while local development
+continues to use `127.0.0.1`. Follow
+[`ops/cloud-run/README.md`](./ops/cloud-run/README.md). Update the GitHub
+`VITE_AI_BRIDGE_URL` repository variable only after the deployed health check
+and a real three-round resume test pass.

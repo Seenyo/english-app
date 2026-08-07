@@ -8,6 +8,7 @@ import {
   developerPreviewVocabularyOverview,
   toDeveloperPreviewMemorySession,
 } from './fixtures.ts';
+import { developerPreviewMemoryCards } from './vocabularyMemoryCards.ts';
 
 test('developer preview boots into a completed learner state', () => {
   assert.equal(developerPreviewAssessmentState.status, 'completed');
@@ -42,4 +43,24 @@ test('developer preview repeats a missed card after the initial ten', () => {
   assert.equal(complete.status, 'completed');
   assert.equal(complete.rememberedCount, 10);
   assert.equal(complete.againCount, 0);
+});
+
+test('developer preview uses complete QA data without generic examples', () => {
+  assert.equal(
+    developerPreviewMemoryCards.filter((card) => card.kind === 'word').length,
+    10,
+  );
+  assert.equal(
+    developerPreviewMemoryCards.filter((card) => card.kind === 'idiom').length,
+    10,
+  );
+  for (const card of developerPreviewMemoryCards) {
+    assert.equal(card.examples.length, 3);
+    assert.equal(
+      card.examples.some((example) =>
+        example.english.startsWith('This example shows how'),
+      ),
+      false,
+    );
+  }
 });

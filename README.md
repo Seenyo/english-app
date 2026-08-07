@@ -34,7 +34,7 @@ ChatGPT Plus/Pro login. No OpenAI API key is used.
 GitHub Pages / Vite dev server
         │ Supabase access token
         ▼
-Personal AI bridge (127.0.0.1:8787)
+Personal AI bridge (local Node process or Cloud Run)
         ├── Supabase: attempts, answers, persona versions, reports, jobs
         └── Codex SDK: one resumable thread per learning feature
 ```
@@ -55,6 +55,9 @@ npm run dev:ai
 ```
 
 Open <http://localhost:5173>. The AI bridge binds only to `127.0.0.1`.
+
+For the private Cloud Run deployment, see
+[`ops/cloud-run/README.md`](./ops/cloud-run/README.md).
 
 For instant, local-only UI checks with deterministic fixtures, use:
 

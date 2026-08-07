@@ -95,9 +95,19 @@ export type VocabularyMemoryOverview = z.infer<
   typeof vocabularyMemoryOverviewSchema
 >;
 
-export const vocabularyMemoryCardSchema = vocabularyCardSchema.omit({
-  currentRating: true,
+export const vocabularyExampleSchema = z.object({
+  english: z.string().min(1).max(1200),
+  japanese: z.string().min(1).max(1200),
 });
+export type VocabularyExample = z.infer<typeof vocabularyExampleSchema>;
+
+export const vocabularyMemoryCardSchema = vocabularyCardSchema
+  .omit({ currentRating: true })
+  .extend({
+    // Keep the client compatible with a rolling bridge deployment. The bridge
+    // always returns three examples once the new version is active.
+    examples: z.array(vocabularyExampleSchema).max(3).default([]),
+  });
 export type VocabularyMemoryCard = z.infer<typeof vocabularyMemoryCardSchema>;
 
 export const startVocabularyMemoryRequestSchema = z
