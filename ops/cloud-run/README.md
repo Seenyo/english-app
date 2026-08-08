@@ -36,7 +36,9 @@ from the frontend. Confirm that Round 1 creates a thread and Rounds 2 and 3
 resume it before changing the GitHub `VITE_AI_BRIDGE_URL` repository variable.
 
 The non-interactive production-container check generates 10/10/5 questions and
-asserts that all three rounds use one resumable thread:
+asserts that all three rounds use one resumable thread. The smoke job uses
+ephemeral Codex state so it cannot overwrite sessions in the production state
+bucket:
 
 ```sh
 GCP_PROJECT_ID=your-project-id npm run cloud-run:smoke

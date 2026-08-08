@@ -7,7 +7,6 @@ readonly service="${GCP_SERVICE:-english-ai-bridge}"
 readonly job="${GCP_SMOKE_JOB:-english-ai-bridge-smoke}"
 readonly runtime_account_name="${GCP_RUNTIME_ACCOUNT:-english-ai-bridge}"
 readonly runtime_account="${runtime_account_name}@${project_id}.iam.gserviceaccount.com"
-readonly state_bucket="${GCP_CODEX_STATE_BUCKET:-${project_id}-english-ai-codex-state}"
 readonly server_env_secret="${GCP_SERVER_ENV_SECRET:-english-ai-server-env}"
 readonly codex_auth_secret="${GCP_CODEX_AUTH_SECRET:-english-ai-codex-auth}"
 
@@ -33,10 +32,8 @@ gcloud run jobs deploy "$job" \
   --task-timeout 3600 \
   --command npm \
   --args run,ai:smoke:cloud \
-  --set-env-vars 'CODEX_HOME=/tmp/english-study-codex-home,CODEX_STATE_MIRROR_DIR=/mnt/codex-state,CODEX_AUTH_SEED_FILE=/var/secrets/codex/auth.json' \
-  --set-secrets "/var/secrets/server/.env.server=${server_env_secret}:latest,/var/secrets/codex/auth.json=${codex_auth_secret}:latest" \
-  --add-volume "name=codex-state,type=cloud-storage,bucket=${state_bucket},mount-options=uid=1000;gid=1000" \
-  --add-volume-mount 'volume=codex-state,mount-path=/mnt/codex-state'
+  --set-env-vars 'CODEX_HOME=/tmp/english-study-codex-home,CODEX_STATE_MIRROR_DIR=/tmp/codex-state-mirror,CODEX_AUTH_SEED_FILE=/var/secrets/codex/auth.json' \
+  --set-secrets "/var/secrets/server/.env.server=${server_env_secret}:latest,/var/secrets/codex/auth.json=${codex_auth_secret}:latest"
 
 gcloud run jobs execute "$job" \
   --project "$project_id" \
