@@ -90,6 +90,22 @@ export const developerPreviewVocabularyOverview: VocabularyOverview =
       mostlyUnknown: 126,
       unknown: 69,
     },
+    sectionMastery: [
+      ...Array.from({ length: 19 }, (_, index) => ({
+        kind: 'word' as const,
+        section: index + 1,
+        total: 100,
+        mastered: index === 0 ? 100 : 0,
+        isMastered: index === 0,
+      })),
+      ...Array.from({ length: 17 }, (_, index) => ({
+        kind: 'idiom' as const,
+        section: index + 1,
+        total: index === 16 ? 84 : 100,
+        mastered: index === 0 ? 100 : 0,
+        isMastered: index === 0,
+      })),
+    ],
     lastCheckedAt: previewDate,
     resumableSessions: [],
   });

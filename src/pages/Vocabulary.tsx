@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import {
   canContinueVocabularyCheck,
+  isVocabularySectionMastered,
   vocabularyActivities,
   vocabularyScopeLabels,
   useVocabulary,
@@ -180,22 +181,6 @@ function SectionScopeChoices({
                         <b aria-hidden="true">→</b>
                       </Link>
                     )}
-                    <Link
-                      className="check-start-option"
-                      to={`/study/vocabulary/check/${scope}/setup?mode=restart`}
-                    >
-                      <strong>初めから</strong>
-                      <b aria-hidden="true">→</b>
-                    </Link>
-                    {!isLoading && canRecheck && (
-                      <Link
-                        className="check-start-option"
-                        to={`/study/vocabulary/check/${scope}/setup?mode=recheck`}
-                      >
-                        <strong>再チェック</strong>
-                        <b aria-hidden="true">↻</b>
-                      </Link>
-                    )}
                     <button
                       aria-expanded={isSectionPickerOpen}
                       className="check-start-option"
@@ -211,12 +196,48 @@ function SectionScopeChoices({
                         {isSectionPickerOpen ? '−' : '+'}
                       </b>
                     </button>
+                    {!isLoading && canRecheck && (
+                      <Link
+                        className="check-start-option"
+                        to={`/study/vocabulary/check/${scope}/setup?mode=recheck`}
+                      >
+                        <strong>再チェック</strong>
+                        <b aria-hidden="true">↻</b>
+                      </Link>
+                    )}
                     {error && <p className="check-option-error">{error}</p>}
                   </div>
                 )}
-                {(activity === 'memorize' || isSectionPickerOpen) && (
+                {activity === 'memorize' && (
+                  <div className="check-start-options">
+                    <Link
+                      className="check-start-option"
+                      to={`/study/vocabulary/memorize/${scope}/continue`}
+                    >
+                      <strong>続きから</strong>
+                      <b aria-hidden="true">→</b>
+                    </Link>
+                    <button
+                      aria-expanded={isSectionPickerOpen}
+                      className="check-start-option"
+                      onClick={() =>
+                        onToggleSectionPicker(
+                          isSectionPickerOpen ? null : scope,
+                        )
+                      }
+                      type="button"
+                    >
+                      <strong>セクションごと</strong>
+                      <b aria-hidden="true">
+                        {isSectionPickerOpen ? '−' : '+'}
+                      </b>
+                    </button>
+                  </div>
+                )}
+                {isSectionPickerOpen && (
                   <SectionGrid
                     activity={activity}
+                    overview={overview}
                     scope={scope}
                     sectionCount={sectionCount}
                   />
@@ -232,10 +253,12 @@ function SectionScopeChoices({
 
 function SectionGrid({
   activity,
+  overview,
   scope,
   sectionCount,
 }: {
   activity: SectionActivity;
+  overview: ReturnType<typeof useVocabulary>['overview'];
   scope: CheckScope;
   sectionCount: number;
 }) {
@@ -249,8 +272,28 @@ function SectionGrid({
           activity === 'check'
             ? `/study/vocabulary/check/${scope}/setup?section=${section}`
             : `/study/vocabulary/memorize/${scope}/${section}`;
+        const isMastered = isVocabularySectionMastered(
+          overview,
+          scope === 'words' ? 'word' : 'idiom',
+          section,
+        );
         return (
-          <Link className="vocabulary-section-link" key={section} to={target}>
+          <Link
+            className={`vocabulary-section-link${
+              isMastered ? ' is-mastered' : ''
+            }`}
+            key={section}
+            to={target}
+          >
+            {isMastered && (
+              <span
+                aria-label="完璧"
+                className="vocabulary-section-check"
+                role="img"
+              >
+                ✓
+              </span>
+            )}
             <strong>{section}</strong>
             <small>
               {start}–{end}
