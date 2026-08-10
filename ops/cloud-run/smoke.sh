@@ -32,6 +32,8 @@ gcloud run jobs deploy "$job" \
   --task-timeout 3600 \
   --command npm \
   --args run,ai:smoke:cloud \
+  --clear-volumes \
+  --clear-volume-mounts \
   --set-env-vars 'CODEX_HOME=/tmp/english-study-codex-home,CODEX_STATE_MIRROR_DIR=/tmp/codex-state-mirror,CODEX_AUTH_SEED_FILE=/var/secrets/codex/auth.json' \
   --set-secrets "/var/secrets/server/.env.server=${server_env_secret}:latest,/var/secrets/codex/auth.json=${codex_auth_secret}:latest"
 
