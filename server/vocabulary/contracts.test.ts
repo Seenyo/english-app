@@ -45,11 +45,33 @@ test('validates the compact memorization session and idempotent answer payload',
       meaningJa: '作る',
       section: 1,
       part: 1,
+      examples: [
+        {
+          english: 'Regular exercise helps maintain good health.',
+          japanese: '定期的な運動は健康維持に役立つ。',
+        },
+        {
+          english: 'The road is maintained throughout the year.',
+          japanese: 'その道路は一年を通して整備されている。',
+        },
+        {
+          english: 'She maintains that the report is accurate.',
+          japanese: '彼女はその報告書が正確だと主張している。',
+        },
+      ],
     },
     rememberedCount: 0,
     againCount: 0,
   });
   assert.equal(session.currentCard?.term, 'create');
+  assert.equal(session.currentCard?.examples.length, 3);
+  const rollingDeploymentSession = vocabularyMemorySessionSchema.parse({
+    ...session,
+    currentCard: session.currentCard
+      ? { ...session.currentCard, examples: undefined }
+      : null,
+  });
+  assert.deepEqual(rollingDeploymentSession.currentCard?.examples, []);
   assert.equal(
     answerVocabularyMemoryRequestSchema.parse({
       operationId: '00000000-0000-4000-8000-000000000021',

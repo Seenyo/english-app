@@ -165,16 +165,18 @@ export function VocabularyMemory() {
         </div>
 
         <button
+          aria-disabled={isRevealed || isSaving}
+          aria-expanded={isRevealed}
           aria-label={
-            isRevealed
-              ? `${prompt}の答え：${revealedAnswer}`
-              : `${prompt}の${answerLanguage}を見る`
+            isRevealed ? undefined : `${prompt}の${answerLanguage}を見る`
           }
           className={`memory-card${isRevealed ? ' is-revealed' : ''}${
             answerMotion ? ` is-${answerMotion}` : ''
           }`}
           disabled={isSaving}
-          onClick={() => setIsRevealed(true)}
+          onClick={() => {
+            if (!isRevealed) setIsRevealed(true);
+          }}
           type="button"
         >
           <span className="memory-card-meta">
@@ -196,6 +198,20 @@ export function VocabularyMemory() {
           >
             {isRevealed ? revealedAnswer : `タップして${answerLanguage}を見る`}
           </span>
+          {isRevealed && card.examples.length > 0 && (
+            <span
+              className="memory-card-examples"
+              aria-label="例文"
+              role="list"
+            >
+              {card.examples.map((example) => (
+                <span key={example.english} role="listitem">
+                  <span lang="en">{example.english}</span>
+                  <span lang="ja">{example.japanese}</span>
+                </span>
+              ))}
+            </span>
+          )}
         </button>
 
         <div className="memory-response-area">

@@ -10,6 +10,7 @@ import {
   type GenerateRoundRequest,
 } from '../../shared/assessment/contracts.ts';
 import { createCodexEnvironment } from '../codex/environment.ts';
+import { persistCodexState } from '../codex/state.ts';
 import type { ServerConfig } from '../config.ts';
 import { buildGenerationPrompt, buildRepairPrompt } from './prompt.ts';
 import { parseAndValidateBatch } from './validation.ts';
@@ -63,8 +64,24 @@ export function createAssessmentThreadFactory(
   };
 
   return {
-    start: () => codex.startThread(threadOptions),
-    resume: (threadId) => codex.resumeThread(threadId, threadOptions),
+    start: () => withPersistentState(codex.startThread(threadOptions)),
+    resume: (threadId) =>
+      withPersistentState(codex.resumeThread(threadId, threadOptions)),
+  };
+}
+
+function withPersistentState(thread: Thread): AssessmentThread {
+  return {
+    get id() {
+      return thread.id;
+    },
+    async run(input, turnOptions) {
+      try {
+        return await thread.run(input, turnOptions);
+      } finally {
+        await persistCodexState();
+      }
+    },
   };
 }
 

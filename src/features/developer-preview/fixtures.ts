@@ -19,6 +19,7 @@ import {
   type VocabularyOverview,
 } from '../../../shared/vocabulary/contracts.ts';
 import { developerPreviewUserId } from './runtime';
+import { developerPreviewMemoryCards } from './vocabularyMemoryCards';
 
 const previewDate = '2026-07-21T12:00:00.000Z';
 
@@ -101,59 +102,6 @@ export const developerPreviewMemoryOverview: VocabularyMemoryOverview =
     hasActiveSession: false,
     lastMemorizedAt: '2026-07-20T12:00:00.000Z',
   });
-
-const developerPreviewMemoryCards: VocabularyMemoryCard[] = [
-  previewMemoryCard(101, 'word', 101, 'maintain', '維持する、保つ', 2, 1),
-  previewMemoryCard(
-    534,
-    'word',
-    534,
-    'attribute',
-    '〜のせいにする／属性',
-    6,
-    1,
-  ),
-  previewMemoryCard(
-    882,
-    'word',
-    882,
-    'reluctant',
-    '気が進まない、渋って',
-    9,
-    2,
-  ),
-  previewMemoryCard(1217, 'word', 1217, 'subtle', '微妙な、繊細な', 13, 2),
-  previewMemoryCard(1542, 'word', 1542, 'deteriorate', '悪化する', 16, 2),
-  previewMemoryCard(
-    1811,
-    'word',
-    1811,
-    'coherent',
-    '一貫した、筋の通った',
-    19,
-    1,
-  ),
-  previewMemoryCard(1888, 'word', 1888, 'scrutinize', '綿密に調べる', 19, 3),
-  previewMemoryCard(62, 'word', 62, 'provide', '提供する', 1, 1),
-  previewMemoryCard(374, 'word', 374, 'likely', 'ありそうな', 4, 1),
-  previewMemoryCard(1433, 'word', 1433, 'compel', '強いる', 15, 2),
-  previewMemoryCard(2001, 'idiom', 101, 'account for', '〜を説明する／占める'),
-  previewMemoryCard(2458, 'idiom', 558, 'come up with', '〜を思いつく'),
-  previewMemoryCard(
-    3114,
-    'idiom',
-    1214,
-    'be conducive to',
-    '〜に役立つ、〜を促す',
-  ),
-  previewMemoryCard(3012, 'idiom', 12, 'at first hand', '直接に'),
-  previewMemoryCard(3222, 'idiom', 222, 'be aware of', '〜に気づいている'),
-  previewMemoryCard(3444, 'idiom', 444, 'carry out', '実行する'),
-  previewMemoryCard(3666, 'idiom', 666, 'do away with', '〜を廃止する'),
-  previewMemoryCard(3888, 'idiom', 888, 'in terms of', '〜の観点から'),
-  previewMemoryCard(4110, 'idiom', 1110, 'put off', '延期する'),
-  previewMemoryCard(4332, 'idiom', 1332, 'take over', '引き継ぐ'),
-];
 
 export type DeveloperPreviewMemoryState = {
   sessionId: string;
@@ -250,25 +198,5 @@ function previewRound(
       { category: 'idiom' as const, correct: 2, total: 3, unknown: 1 },
       { category: 'grammar' as const, correct: 2, total: 3, unknown: 0 },
     ],
-  };
-}
-
-function previewMemoryCard(
-  id: number,
-  kind: 'word' | 'idiom',
-  sourceOrder: number,
-  term: string,
-  meaningJa: string,
-  section: number | null = null,
-  part: number | null = null,
-): VocabularyMemoryCard {
-  return {
-    id,
-    kind,
-    sourceOrder,
-    term,
-    meaningJa,
-    section,
-    part,
   };
 }

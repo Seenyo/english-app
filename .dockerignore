@@ -1,0 +1,16 @@
+.git
+.github
+.codex
+.env
+.env.*
+!.env.example
+!.env.server.example
+dist
+local-model-evaluation
+node_modules
+ops
+src
+supabase
+*.pdf
+*.tsv
+*.log
